@@ -1,4 +1,4 @@
-using System;
+using System.Collections.Generic;
 
 namespace SoundWin.Core.Models;
 
@@ -40,4 +40,14 @@ public sealed class SoundWinSettings
     /// Thème d'interface (Dark par défaut).
     /// </summary>
     public string ThemeMode { get; set; } = "Dark";
+
+    /// <summary>
+    /// Historique des requêtes de recherche récentes.
+    /// </summary>
+    public List<string> RecentSearchQueries { get; set; } = new();
+
+    /// <summary>
+    /// Identifiants des morceaux joués récemment depuis la recherche (style Spotify).
+    /// </summary>
+    public List<long> RecentSearchedTrackIds { get; set; } = new();
 }

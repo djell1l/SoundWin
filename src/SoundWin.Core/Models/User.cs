@@ -47,6 +47,12 @@ public partial class User : ObservableObject
     public int RepostsCount { get; set; }
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(FollowButtonText))]
+    private bool _isFollowed;
+
+    public string FollowButtonText => IsFollowed ? "Abonné(e)" : "S'abonner";
+
+    [ObservableProperty]
     private string? _description;
 
     [ObservableProperty]

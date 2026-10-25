@@ -53,9 +53,19 @@
                     </MenuFlyoutSubItem.Icon>
                 </MenuFlyoutSubItem>
                 <MenuFlyoutSeparator />
+                <MenuFlyoutItem Text="Commentaires &amp; Réactions..." Click="OnOpenCommentsDialogClicked">
+                    <MenuFlyoutItem.Icon>
+                        <SymbolIcon Symbol="Comment" />
+                    </MenuFlyoutItem.Icon>
+                </MenuFlyoutItem>
+                <MenuFlyoutItem x:Name="FollowArtistMenuItem" Text="S'abonner à cet artiste" Click="OnFollowArtistFromMenuClicked">
+                    <MenuFlyoutItem.Icon>
+                        <SymbolIcon Symbol="AddFriend" />
+                    </MenuFlyoutItem.Icon>
+                </MenuFlyoutItem>
                 <MenuFlyoutItem Text="Voir le profil de l'artiste" Click="OnOpenArtistProfileClicked">
                     <MenuFlyoutItem.Icon>
-                        <FontIcon Glyph="&#xE77B;" />
+                        <SymbolIcon Symbol="Contact" />
                     </MenuFlyoutItem.Icon>
                 </MenuFlyoutItem>
                 <MenuFlyoutItem Text="Copier le lien SoundCloud" Click="OnCopyLinkClicked">
@@ -80,12 +90,14 @@
                     Height="32"
                     HorizontalAlignment="Center"
                     VerticalAlignment="Center"
+                    HorizontalContentAlignment="Center"
+                    VerticalContentAlignment="Center"
                     CornerRadius="16"
                     Padding="0"
                     Background="#D9000000"
                     Opacity="0"
                     Click="OnPlayClicked">
-                    <FontIcon Glyph="&#xE768;" FontSize="14" Foreground="White" Margin="2,0,0,0" />
+                    <SymbolIcon Symbol="Play" Foreground="White" />
                 </Button>
             </Grid>
 

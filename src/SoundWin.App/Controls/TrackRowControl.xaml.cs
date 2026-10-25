@@ -175,6 +175,124 @@ public sealed partial class TrackRowControl : UserControl
         }
     }
 
+    private async void OnFollowArtistFromMenuClicked(object sender, RoutedEventArgs e)
+    {
+        if (Track == null || Track.ArtistId <= 0) return;
+        var creds = App.Services.GetService<CredentialService>();
+        var api = App.Services.GetService<SoundCloudApiClient>();
+        var session = creds?.LoadSession();
+
+        if (session == null || !session.IsAuthenticated || api == null)
+        {
+            await PromptLoginIfNeededAsync();
+            return;
+        }
+
+        await api.FollowUserAsync(session.UserId, Track.ArtistId);
+    }
+
+    private async void OnOpenCommentsDialogClicked(object sender, RoutedEventArgs e)
+    {
+        if (Track == null) return;
+        var api = App.Services.GetService<SoundCloudApiClient>();
+        if (api == null) return;
+
+        var comments = await api.GetTrackCommentsAsync(Track.Id, 60);
+        var commentsCollection = new System.Collections.ObjectModel.ObservableCollection<TrackComment>(comments);
+
+        var replyBox = new TextBox
+        {
+            PlaceholderText = "Écrire un commentaire ou répondre (@pseudo)...",
+            HorizontalAlignment = HorizontalAlignment.Stretch
+        };
+
+        var list = new ListView
+        {
+            ItemsSource = commentsCollection,
+            SelectionMode = ListViewSelectionMode.None,
+            Height = 320
+        };
+
+        foreach (var c in commentsCollection)
+        {
+            // Render clean interactive items
+        }
+
+        var itemsStack = new StackPanel { Spacing = 8 };
+        void RebuildList()
+        {
+            itemsStack.Children.Clear();
+            foreach (var c in commentsCollection)
+            {
+                var row = new Grid { ColumnSpacing = 10, Padding = new Thickness(8), Background = new SolidColorBrush(Microsoft.UI.ColorHelper.FromArgb(25, 255, 255, 255)), CornerRadius = new CornerRadius(6) };
+                row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+                row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+                var textStack = new StackPanel { Spacing = 2 };
+                textStack.Children.Add(new TextBlock { Text = $"{c.Username} • {c.FormattedTimestamp}", FontWeight = Microsoft.UI.Text.FontWeights.Bold, FontSize = 12 });
+                textStack.Children.Add(new TextBlock { Text = c.Body, FontSize = 12, TextWrapping = TextWrapping.Wrap });
+
+                var repBtn = new Button { Content = "Répondre", FontSize = 11, Padding = new Thickness(8, 4, 8, 4), VerticalAlignment = VerticalAlignment.Top };
+                repBtn.Click += (_, _) =>
+                {
+                    replyBox.Text = $"@{c.Username} ";
+                    replyBox.Focus(FocusState.Programmatic);
+                    replyBox.SelectionStart = replyBox.Text.Length;
+                };
+
+                Grid.SetColumn(textStack, 0);
+                Grid.SetColumn(repBtn, 1);
+                row.Children.Add(textStack);
+                row.Children.Add(repBtn);
+                itemsStack.Children.Add(row);
+            }
+        }
+        RebuildList();
+
+        var scroll = new ScrollViewer { Content = itemsStack, Height = 300, VerticalScrollBarVisibility = ScrollBarVisibility.Auto };
+
+        var sendBtn = new Button
+        {
+            Content = "Publier",
+            Background = new SolidColorBrush(Microsoft.UI.ColorHelper.FromArgb(255, 255, 85, 0)),
+            Foreground = new SolidColorBrush(Microsoft.UI.Colors.White)
+        };
+
+        sendBtn.Click += async (_, _) =>
+        {
+            if (string.IsNullOrWhiteSpace(replyBox.Text)) return;
+            var posted = await api.PostTrackCommentAsync(Track.Id, replyBox.Text.Trim(), 0);
+            if (posted != null)
+            {
+                commentsCollection.Insert(0, posted);
+                replyBox.Text = string.Empty;
+                RebuildList();
+            }
+        };
+
+        var inputGrid = new Grid { ColumnSpacing = 8 };
+        inputGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        inputGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        Grid.SetColumn(replyBox, 0);
+        Grid.SetColumn(sendBtn, 1);
+        inputGrid.Children.Add(replyBox);
+        inputGrid.Children.Add(sendBtn);
+
+        var rootPanel = new StackPanel { Width = 460, Spacing = 12 };
+        rootPanel.Children.Add(scroll);
+        rootPanel.Children.Add(inputGrid);
+
+        var dlg = new ContentDialog
+        {
+            Title = $"Réactions — {Track.Title}",
+            Content = rootPanel,
+            CloseButtonText = "Fermer",
+            XamlRoot = this.XamlRoot
+        };
+
+        await dlg.ShowAsync();
+    }
+
     private void OnCopyLinkClicked(object sender, RoutedEventArgs e)
     {
         if (Track != null && !string.IsNullOrEmpty(Track.PermalinkUrl))

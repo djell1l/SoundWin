@@ -2,8 +2,10 @@ using System;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Input;
 using SoundWin.App.ViewModels;
 using SoundWin.Core.Models;
+using Windows.System;
 
 namespace SoundWin.App.Views;
 
@@ -104,7 +106,7 @@ public sealed partial class MainWindowContent : UserControl
         }
     }
 
-    private void OnUserAvatarTapped(object sender, Microsoft.UI.Xaml.Input.TappedRoutedEventArgs e)
+    private void OnUserAvatarTapped(object sender, TappedRoutedEventArgs e)
     {
         MainNavView.SelectedItem = MainNavView.MenuItems[3];
         ContentFrame.Navigate(typeof(ProfilePage));
@@ -148,5 +150,54 @@ public sealed partial class MainWindowContent : UserControl
     private void OnWaveformSeekRequested(object? sender, double ratio)
     {
         PlayerVm.SeekProgress(ratio);
+    }
+
+    // ==========================================
+    // REACTIONS & COMMENTS HANDLERS
+    // ==========================================
+    private void OnReplyToCommentClicked(object sender, RoutedEventArgs e)
+    {
+        if (sender is FrameworkElement { DataContext: TrackComment comment })
+        {
+            if (PlayerVm.DurationMs > 0)
+            {
+                double ratio = Math.Clamp(comment.TimestampMs / PlayerVm.DurationMs, 0.0, 1.0);
+                PlayerVm.SeekProgress(ratio);
+            }
+            NewCommentTextBox.Text = $"@{comment.Username} ";
+            NewCommentTextBox.Focus(FocusState.Programmatic);
+            NewCommentTextBox.SelectionStart = NewCommentTextBox.Text.Length;
+        }
+    }
+
+    private async void OnQuickReactionClicked(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button { Content: string reactionText } && !string.IsNullOrWhiteSpace(reactionText))
+        {
+            await PlayerVm.PostComment(reactionText);
+        }
+    }
+
+    private async void OnSendCommentClicked(object sender, RoutedEventArgs e)
+    {
+        await SubmitNewCommentAsync();
+    }
+
+    private async void OnNewCommentKeyDown(object sender, KeyRoutedEventArgs e)
+    {
+        if (e.Key == VirtualKey.Enter)
+        {
+            e.Handled = true;
+            await SubmitNewCommentAsync();
+        }
+    }
+
+    private async System.Threading.Tasks.Task SubmitNewCommentAsync()
+    {
+        var text = NewCommentTextBox.Text?.Trim();
+        if (string.IsNullOrWhiteSpace(text)) return;
+
+        NewCommentTextBox.Text = string.Empty;
+        await PlayerVm.PostComment(text);
     }
 }

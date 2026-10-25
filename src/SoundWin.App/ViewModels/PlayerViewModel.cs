@@ -65,6 +65,23 @@ public partial class PlayerViewModel : ObservableObject
         ? Duration.ToString(@"h\:mm\:ss")
         : Duration.ToString(@"m\:ss");
 
+    public string FormattedVolumePercent => IsMuted ? "0%" : $"{(int)Math.Round(Volume * 100)}%";
+
+    public bool IsRepeatActive => RepeatMode != RepeatMode.Off;
+
+    public string RepeatGlyph => RepeatMode == RepeatMode.One ? "\uE8ED" : "\uE8EE";
+
+    public string VolumeGlyph
+    {
+        get
+        {
+            if (IsMuted || Volume <= 0.001) return "\uE74F"; // Mute
+            if (Volume < 0.35) return "\uE992"; // Volume 1
+            if (Volume < 0.70) return "\uE993"; // Volume 2
+            return "\uE767"; // Volume 3
+        }
+    }
+
     public PlayerViewModel(AudioPlayerService player, SoundCloudApiClient apiClient, DiscordRpcService rpc, CredentialService credentials)
     {
         _player = player;
@@ -154,7 +171,7 @@ public partial class PlayerViewModel : ObservableObject
         var comment = await _apiClient.PostTrackCommentAsync(CurrentTrack.Id, body.Trim(), ts);
         if (comment != null)
         {
-            CurrentComments.Add(comment);
+            CurrentComments.Insert(0, comment);
         }
     }
 
@@ -200,6 +217,8 @@ public partial class PlayerViewModel : ObservableObject
             _ => RepeatMode.Off
         };
         _player.RepeatMode = RepeatMode;
+        OnPropertyChanged(nameof(IsRepeatActive));
+        OnPropertyChanged(nameof(RepeatGlyph));
     }
 
     [RelayCommand]
@@ -224,11 +243,16 @@ public partial class PlayerViewModel : ObservableObject
     partial void OnVolumeChanged(double value)
     {
         _player.Volume = value;
+        if (value > 0 && IsMuted) IsMuted = false;
+        OnPropertyChanged(nameof(FormattedVolumePercent));
+        OnPropertyChanged(nameof(VolumeGlyph));
     }
 
     partial void OnIsMutedChanged(bool value)
     {
         _player.IsMuted = value;
+        OnPropertyChanged(nameof(FormattedVolumePercent));
+        OnPropertyChanged(nameof(VolumeGlyph));
     }
 
     [RelayCommand]

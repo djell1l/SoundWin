@@ -18,6 +18,7 @@ public class DiscordRpcService : IDisposable
     private NamedPipeClientStream? _pipe;
     private readonly CancellationTokenSource _cts = new();
     private readonly SemaphoreSlim _sendLock = new(1, 1);
+    private readonly SemaphoreSlim _stateLock = new(1, 1);
 
     private bool _isConnected;
     private string _statusMessage = "Non initialise";
@@ -54,7 +55,18 @@ public class DiscordRpcService : IDisposable
             {
                 if (IsEnabled && !_isConnected)
                 {
-                    await TryConnectAsync().ConfigureAwait(false);
+                    await _stateLock.WaitAsync().ConfigureAwait(false);
+                    try
+                    {
+                        if (IsEnabled && !_isConnected)
+                        {
+                            await TryConnectInternalAsync().ConfigureAwait(false);
+                        }
+                    }
+                    finally
+                    {
+                        _stateLock.Release();
+                    }
                 }
 
                 try
@@ -73,39 +85,40 @@ public class DiscordRpcService : IDisposable
 
     private void OnSettingsChanged()
     {
-        if (!IsEnabled)
-        {
-            _statusMessage = "Desactive dans les parametres";
-            _ = ClearPresenceAndDisconnectAsync();
-        }
-        else if (!_isConnected)
-        {
-            _ = TryConnectAsync();
-        }
-        else
-        {
-            if (_lastTrack != null)
-            {
-                _ = UpdatePresenceAsync(_lastTrack, _lastIsPlaying, _lastPosition, _lastDuration);
-            }
-        }
+        _ = SyncStateWithSettingsAsync();
     }
 
-    private async Task ClearPresenceAndDisconnectAsync()
+    private async Task SyncStateWithSettingsAsync()
     {
+        await _stateLock.WaitAsync().ConfigureAwait(false);
         try
         {
-            if (_isConnected && _pipe != null && _pipe.IsConnected)
+            if (!IsEnabled)
             {
-                await ClearPresenceAsync().ConfigureAwait(false);
+                _statusMessage = "Desactive dans les parametres";
+                await ClearPresenceInternalAsync().ConfigureAwait(false);
+                DisconnectInternal();
+                ConnectionStatusChanged?.Invoke(false);
+            }
+            else
+            {
+                if (!_isConnected || _pipe == null || !_pipe.IsConnected)
+                {
+                    await TryConnectInternalAsync().ConfigureAwait(false);
+                }
+                else if (_lastTrack != null)
+                {
+                    await UpdatePresenceInternalAsync(_lastTrack, _lastIsPlaying, _lastPosition, _lastDuration).ConfigureAwait(false);
+                }
             }
         }
-        catch { }
-
-        DisconnectInternal();
+        finally
+        {
+            _stateLock.Release();
+        }
     }
 
-    private async Task TryConnectAsync()
+    private async Task TryConnectInternalAsync()
     {
         if (!IsEnabled) return;
 
@@ -115,7 +128,6 @@ public class DiscordRpcService : IDisposable
             ? _settings.Current.DiscordRpcClientId.Trim()
             : SoundWinSettings.DefaultDiscordClientId;
 
-        // Try configured client ID first, then fallback to default verified ID if different
         var clientIdsToTry = new[] { primaryClientId };
         if (primaryClientId != SoundWinSettings.DefaultDiscordClientId)
         {
@@ -124,16 +136,20 @@ public class DiscordRpcService : IDisposable
 
         for (int i = 0; i < 10; i++)
         {
+            if (!IsEnabled) return;
+
             var pipeName = $"discord-ipc-{i}";
 
             foreach (var cid in clientIdsToTry)
             {
+                if (!IsEnabled) return;
+
                 NamedPipeClientStream? candidatePipe = null;
                 try
                 {
                     candidatePipe = new NamedPipeClientStream(".", pipeName, PipeDirection.InOut, PipeOptions.Asynchronous);
 
-                    using var timeoutCts = new CancellationTokenSource(800);
+                    using var timeoutCts = new CancellationTokenSource(600);
                     using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(_cts.Token, timeoutCts.Token);
                     await candidatePipe.ConnectAsync(linkedCts.Token).ConfigureAwait(false);
 
@@ -148,7 +164,7 @@ public class DiscordRpcService : IDisposable
 
                     // Read first frame to ensure handshake succeeded (READY vs ERROR / CLOSE)
                     byte[] header = new byte[8];
-                    using var handshakeTimeoutCts = new CancellationTokenSource(1200);
+                    using var handshakeTimeoutCts = new CancellationTokenSource(1000);
                     using var readLinkedCts = CancellationTokenSource.CreateLinkedTokenSource(_cts.Token, handshakeTimeoutCts.Token);
 
                     int headerRead = await ReadExactAsync(candidatePipe, header, 8, readLinkedCts.Token).ConfigureAwait(false);
@@ -177,9 +193,8 @@ public class DiscordRpcService : IDisposable
 
                     string json = Encoding.UTF8.GetString(body);
 
-                    if (op == 2) // CLOSE (e.g. Invalid Client ID)
+                    if (op == 2) // CLOSE
                     {
-                        Debug.WriteLine($"[DiscordRpcService] Handshake rejected by Discord on {pipeName} with client_id={cid}: {json}");
                         candidatePipe.Dispose();
                         continue;
                     }
@@ -190,19 +205,24 @@ public class DiscordRpcService : IDisposable
                         var root = doc.RootElement;
                         if (root.TryGetProperty("evt", out var evtEl) && evtEl.GetString() == "READY")
                         {
+                            // Double check user didn't toggle OFF while handshake was in flight!
+                            if (!IsEnabled)
+                            {
+                                await SendClearAndFlushAsync(candidatePipe).ConfigureAwait(false);
+                                candidatePipe.Dispose();
+                                return;
+                            }
+
                             _pipe = candidatePipe;
                             _isConnected = true;
                             _statusMessage = $"Connecte a Discord ({pipeName})";
-                            Debug.WriteLine($"[DiscordRpcService] Discord RPC handshake READY on {pipeName} with client_id={cid}!");
                             ConnectionStatusChanged?.Invoke(true);
 
-                            // Start background reader
                             _ = Task.Run(() => ReadLoopAsync(candidatePipe, _cts.Token), _cts.Token);
 
-                            // Replay current playing track immediately
                             if (_lastTrack != null)
                             {
-                                _ = UpdatePresenceAsync(_lastTrack, _lastIsPlaying, _lastPosition, _lastDuration);
+                                await UpdatePresenceInternalAsync(_lastTrack, _lastIsPlaying, _lastPosition, _lastDuration).ConfigureAwait(false);
                             }
                             return;
                         }
@@ -218,7 +238,7 @@ public class DiscordRpcService : IDisposable
         }
 
         _isConnected = false;
-        _statusMessage = "En attente de Discord...";
+        _statusMessage = IsEnabled ? "En attente de Discord..." : "Desactive";
         ConnectionStatusChanged?.Invoke(false);
     }
 
@@ -243,32 +263,8 @@ public class DiscordRpcService : IDisposable
 
                 string json = Encoding.UTF8.GetString(body);
 
-                if (op == 1) // FRAME / DISPATCH
+                if (op == 2) // CLOSE
                 {
-                    using var doc = JsonDocument.Parse(json);
-                    var root = doc.RootElement;
-
-                    if (root.TryGetProperty("evt", out var evtEl) && evtEl.GetString() == "READY")
-                    {
-                        _isConnected = true;
-                        _statusMessage = "Connecte a Discord";
-                        Debug.WriteLine("[DiscordRpcService] Discord RPC READY received.");
-                        ConnectionStatusChanged?.Invoke(true);
-
-                        if (_lastTrack != null)
-                        {
-                            _ = UpdatePresenceAsync(_lastTrack, _lastIsPlaying, _lastPosition, _lastDuration);
-                        }
-                    }
-                    else if (root.TryGetProperty("evt", out var errEvt) && errEvt.GetString() == "ERROR")
-                    {
-                        _statusMessage = "Erreur Discord RPC";
-                        Debug.WriteLine($"[DiscordRpcService] Discord RPC error: {json}");
-                    }
-                }
-                else if (op == 2) // CLOSE
-                {
-                    Debug.WriteLine("[DiscordRpcService] Discord closed RPC connection.");
                     break;
                 }
                 else if (op == 3) // PING
@@ -277,10 +273,7 @@ public class DiscordRpcService : IDisposable
                 }
             }
         }
-        catch (Exception ex)
-        {
-            Debug.WriteLine($"[DiscordRpcService] Read loop ended: {ex.Message}");
-        }
+        catch { }
         finally
         {
             if (ReferenceEquals(_pipe, pipe))
@@ -330,15 +323,32 @@ public class DiscordRpcService : IDisposable
 
         if (!IsEnabled) return;
 
-        if (!_isConnected || _pipe == null)
+        await _stateLock.WaitAsync().ConfigureAwait(false);
+        try
         {
-            await TryConnectAsync().ConfigureAwait(false);
-            if (!_isConnected || _pipe == null) return;
+            if (!IsEnabled) return;
+
+            if (!_isConnected || _pipe == null || !_pipe.IsConnected)
+            {
+                await TryConnectInternalAsync().ConfigureAwait(false);
+                if (!_isConnected || _pipe == null) return;
+            }
+
+            await UpdatePresenceInternalAsync(track, isPlaying, position, duration).ConfigureAwait(false);
         }
+        finally
+        {
+            _stateLock.Release();
+        }
+    }
+
+    private async Task UpdatePresenceInternalAsync(Track? track, bool isPlaying, TimeSpan position, TimeSpan duration)
+    {
+        if (!IsEnabled || _pipe == null || !_pipe.IsConnected) return;
 
         if (track == null)
         {
-            await ClearPresenceAsync().ConfigureAwait(false);
+            await ClearPresenceInternalAsync().ConfigureAwait(false);
             return;
         }
 
@@ -437,19 +447,37 @@ public class DiscordRpcService : IDisposable
                 nonce = Guid.NewGuid().ToString()
             });
 
-            await WriteFrameAsync(1, payload).ConfigureAwait(false);
+            await WriteFrameInternalAsync(_pipe, 1, payload).ConfigureAwait(false);
         }
-        catch (Exception ex)
+        catch
         {
-            Debug.WriteLine($"[DiscordRpcService] Update error: {ex.Message}");
             DisconnectInternal();
         }
     }
 
     public async Task ClearPresenceAsync()
     {
-        if (_pipe == null || !_pipe.IsConnected) return;
+        await _stateLock.WaitAsync().ConfigureAwait(false);
+        try
+        {
+            await ClearPresenceInternalAsync().ConfigureAwait(false);
+        }
+        finally
+        {
+            _stateLock.Release();
+        }
+    }
 
+    private async Task ClearPresenceInternalAsync()
+    {
+        if (_pipe != null && _pipe.IsConnected)
+        {
+            await SendClearAndFlushAsync(_pipe).ConfigureAwait(false);
+        }
+    }
+
+    private async Task SendClearAndFlushAsync(NamedPipeClientStream pipe)
+    {
         try
         {
             var payload = JsonSerializer.Serialize(new
@@ -463,18 +491,11 @@ public class DiscordRpcService : IDisposable
                 nonce = Guid.NewGuid().ToString()
             });
 
-            await WriteFrameAsync(1, payload).ConfigureAwait(false);
+            await WriteFrameInternalAsync(pipe, 1, payload).ConfigureAwait(false);
+            // Give Discord's IPC reader 120ms to process the null activity frame before closing the pipe
+            await Task.Delay(120).ConfigureAwait(false);
         }
-        catch
-        {
-            DisconnectInternal();
-        }
-    }
-
-    private async Task WriteFrameAsync(int opcode, string json)
-    {
-        if (_pipe == null || !_pipe.IsConnected) return;
-        await WriteFrameInternalAsync(_pipe, opcode, json).ConfigureAwait(false);
+        catch { }
     }
 
     private async Task WriteFrameInternalAsync(NamedPipeClientStream pipe, int opcode, string json)
@@ -512,5 +533,6 @@ public class DiscordRpcService : IDisposable
         _cts.Dispose();
         DisconnectInternal();
         _sendLock.Dispose();
+        _stateLock.Dispose();
     }
 }

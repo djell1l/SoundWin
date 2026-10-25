@@ -1725,6 +1725,24 @@ public class SoundCloudApiClient
         }
     }
 
+    public async Task<bool> UnfollowUserAsync(long currentUserId, long targetUserId, CancellationToken ct = default)
+    {
+        if (!IsAuthenticated || currentUserId <= 0 || targetUserId <= 0) return false;
+        await EnsureInitializedAsync(ct);
+
+        var url = $"https://api-v2.soundcloud.com/users/{currentUserId}/followings/{targetUserId}?client_id={_clientId}";
+        try
+        {
+            using var request = CreateRequest(HttpMethod.Delete, url);
+            using var response = await _http.SendAsync(request, ct);
+            return response.IsSuccessStatusCode;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
     public async Task<List<User>> GetWhoToFollowAsync(int limit = 12, CancellationToken ct = default)
     {
         await EnsureInitializedAsync(ct);

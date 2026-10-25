@@ -11,9 +11,9 @@
             <AutoSuggestBox
                 x:Name="SearchBox"
                 Grid.Column="0"
-                PlaceholderText="Rechercher des titres, artistes, albums ou podcasts sur SoundCloud..."
+                PlaceholderText="Que souhaitez-vous écouter ? (Titres, artistes, albums...)"
                 FontSize="15"
-                Height="42"
+                Height="44"
                 QueryIcon="Find"
                 TextChanged="OnSearchTextChanged"
                 QuerySubmitted="OnSearchQuerySubmitted"
@@ -21,8 +21,9 @@
             <Button
                 Grid.Column="1"
                 Margin="12,0,0,0"
-                Height="42"
-                Padding="16,0"
+                Height="44"
+                Padding="18,0"
+                CornerRadius="8"
                 Background="{StaticResource SoundCloudOrangeBrush}"
                 Foreground="White"
                 Click="OnSearchButtonClick">
@@ -33,7 +34,7 @@
             </Button>
         </Grid>
 
-        <!-- Progress Ring -->
+        <!-- Progress Bar -->
         <ProgressBar
             x:Name="SearchProgress"
             Grid.Row="1"
@@ -41,16 +42,132 @@
             Visibility="Collapsed"
             Margin="0,0,0,16" />
 
-        <!-- Results Pivot -->
-        <Pivot x:Name="ResultsPivot" Grid.Row="2">
+        <!-- ==========================================================
+             1. SPOTIFY-STYLE "RECHERCHES RÉCENTES" PANEL (Screenshot #3)
+             ========================================================== -->
+        <ScrollViewer
+            x:Name="RecentsScrollViewer"
+            Grid.Row="2"
+            Visibility="{x:Bind ViewModel.ShowRecentsPanel, Mode=OneWay, Converter={StaticResource BooleanVisibilityConverter}}"
+            VerticalScrollBarVisibility="Auto">
+            <StackPanel MaxWidth="760" HorizontalAlignment="Left" Spacing="24">
+
+                <!-- Recent Queries Pills -->
+                <StackPanel Spacing="10">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <TextBlock Grid.Column="0" Text="Recherches récentes" FontSize="20" FontWeight="Bold" />
+                        <Button
+                            Grid.Column="1"
+                            Content="Effacer l'historique"
+                            FontSize="12"
+                            Background="Transparent"
+                            BorderThickness="0"
+                            Opacity="0.65"
+                            Click="OnClearRecentsClicked" />
+                    </Grid>
+
+                    <!-- Clickable Query Chips -->
+                    <ItemsControl ItemsSource="{x:Bind ViewModel.RecentQueries, Mode=OneWay}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <StackPanel Orientation="Horizontal" Spacing="8" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="x:String">
+                                <Button
+                                    Content="{x:Bind}"
+                                    CornerRadius="16"
+                                    Padding="14,6"
+                                    FontSize="12"
+                                    Background="#1C1C24"
+                                    BorderBrush="#25FFFFFF"
+                                    BorderThickness="1"
+                                    Click="OnRecentQueryChipClicked" />
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+
+                <!-- Spotify-style List of Tracks Played from Search -->
+                <Border
+                    Background="#15151C"
+                    BorderBrush="#20FFFFFF"
+                    BorderThickness="1"
+                    CornerRadius="12"
+                    Padding="16">
+                    <StackPanel Spacing="8">
+                        <TextBlock
+                            Text="Titres écoutés récemment depuis la recherche"
+                            FontSize="13"
+                            FontWeight="SemiBold"
+                            Opacity="0.7"
+                            Margin="6,0,0,4" />
+
+                        <ListView
+                            ItemsSource="{x:Bind ViewModel.RecentSearchedTracks, Mode=OneWay}"
+                            SelectionMode="None"
+                            IsItemClickEnabled="True"
+                            ItemClick="OnRecentTrackItemClicked">
+                            <ListView.ItemTemplate>
+                                <DataTemplate x:DataType="models:Track">
+                                    <Grid Padding="6,6" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="14">
+                                        <!-- Cover Art -->
+                                        <Border Grid.Column="0" Width="48" Height="48" CornerRadius="6" Background="#22222A">
+                                            <Image Source="{x:Bind HighResArtworkUrl}" Stretch="UniformToFill" />
+                                        </Border>
+
+                                        <!-- Title + "Titre • Artist" (Spotify layout from screenshot #3) -->
+                                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="3">
+                                            <TextBlock
+                                                Text="{x:Bind Title}"
+                                                FontSize="15"
+                                                FontWeight="SemiBold"
+                                                TextTrimming="CharacterEllipsis"
+                                                MaxLines="1" />
+                                            <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                                                <Border Background="#30FFFFFF" CornerRadius="3" Padding="4,1">
+                                                    <TextBlock Text="E" FontSize="9" FontWeight="Bold" Opacity="0.85" />
+                                                </Border>
+                                                <TextBlock Text="Titre •" FontSize="13" Opacity="0.65" />
+                                                <TextBlock Text="{x:Bind Artist}" FontSize="13" Opacity="0.65" TextTrimming="CharacterEllipsis" MaxLines="1" />
+                                            </StackPanel>
+                                        </StackPanel>
+
+                                        <!-- Remove button (X) -->
+                                        <Button
+                                            Grid.Column="2"
+                                            Background="Transparent"
+                                            BorderThickness="0"
+                                            Padding="8"
+                                            VerticalAlignment="Center"
+                                            Opacity="0.5"
+                                            Click="OnRemoveRecentTrackClicked">
+                                            <FontIcon Glyph="&#xE711;" FontSize="12" />
+                                        </Button>
+                                    </Grid>
+                                </DataTemplate>
+                            </ListView.ItemTemplate>
+                        </ListView>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- ==========================================================
+             2. SEARCH RESULTS PIVOT (Titres / Playlists / Artistes)
+             ========================================================== -->
+        <Pivot
+            x:Name="ResultsPivot"
+            Grid.Row="2"
+            Visibility="{x:Bind ViewModel.HasActiveQuery, Mode=OneWay, Converter={StaticResource BooleanVisibilityConverter}}">
             <!-- Tracks -->
             <PivotItem Header="Titres">
                 <ListView
                     x:Name="TracksListView"
                     ItemsSource="{x:Bind ViewModel.TrackResults, Mode=OneWay}"
                     SelectionMode="None"
-                    ItemClick="OnTrackItemClick"
-                    IsItemClickEnabled="True">
+                    IsItemClickEnabled="False">
                     <ListView.ItemTemplate>
                         <DataTemplate x:DataType="models:Track">
                             <controls:TrackRowControl Track="{x:Bind}" PlayRequested="OnPlayTrackRequested" />
@@ -69,21 +186,28 @@
                     ItemClick="OnPlaylistItemClick">
                     <GridView.ItemTemplate>
                         <DataTemplate x:DataType="models:Playlist">
-                            <StackPanel Width="150" Margin="8" Spacing="6">
-                                <Grid Width="150" Height="150">
-                                    <Border CornerRadius="8">
+                            <Border
+                                Width="168"
+                                Padding="12"
+                                Margin="0,0,12,12"
+                                CornerRadius="10"
+                                Background="#16161C"
+                                BorderBrush="#18FFFFFF"
+                                BorderThickness="1">
+                                <StackPanel Spacing="8" HorizontalAlignment="Stretch">
+                                    <Border Width="142" Height="142" CornerRadius="8" Background="#22222A" HorizontalAlignment="Center">
                                         <Image Source="{x:Bind DisplayArtworkUrl}" Stretch="UniformToFill" />
                                     </Border>
-                                </Grid>
-                                <TextBlock Text="{x:Bind Title}" FontWeight="Medium" FontSize="13" TextTrimming="CharacterEllipsis" MaxLines="1" />
-                                <TextBlock Text="{x:Bind Author}" FontSize="11" Opacity="0.6" TextTrimming="CharacterEllipsis" MaxLines="1" />
-                            </StackPanel>
+                                    <TextBlock Text="{x:Bind Title}" FontWeight="SemiBold" FontSize="13" TextTrimming="CharacterEllipsis" MaxLines="1" />
+                                    <TextBlock Text="{x:Bind Author}" FontSize="11" Opacity="0.6" TextTrimming="CharacterEllipsis" MaxLines="1" />
+                                </StackPanel>
+                            </Border>
                         </DataTemplate>
                     </GridView.ItemTemplate>
                 </GridView>
             </PivotItem>
 
-            <!-- Artists -->
+            <!-- Artists (With Subscribe / Follow Button!) -->
             <PivotItem Header="Artistes">
                 <ListView
                     x:Name="UsersListView"
@@ -93,18 +217,33 @@
                     ItemClick="OnUserItemClick">
                     <ListView.ItemTemplate>
                         <DataTemplate x:DataType="models:User">
-                            <Grid Padding="12,8" ColumnDefinitions="Auto,*,Auto">
+                            <Grid Padding="12,10" ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="16">
                                 <PersonPicture
+                                    Grid.Column="0"
                                     ProfilePicture="{x:Bind HighResAvatarUrl}"
                                     DisplayName="{x:Bind Username}"
-                                    Width="48"
-                                    Height="48"
-                                    Margin="0,0,16,0" />
-                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                    <TextBlock Text="{x:Bind Username}" FontWeight="SemiBold" FontSize="14" />
-                                    <TextBlock Text="{x:Bind City}" FontSize="12" Opacity="0.6" Visibility="{x:Bind City, Converter={StaticResource StringVisibilityConverter}}" />
+                                    Width="52"
+                                    Height="52" />
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
+                                    <TextBlock Text="{x:Bind Username}" FontWeight="Bold" FontSize="15" />
+                                    <StackPanel Orientation="Horizontal" Spacing="10">
+                                        <TextBlock Text="{x:Bind City}" FontSize="12" Opacity="0.65" Visibility="{x:Bind City, Converter={StaticResource StringVisibilityConverter}}" />
+                                        <StackPanel Orientation="Horizontal" Spacing="4" Opacity="0.6">
+                                            <TextBlock Text="{x:Bind FollowersCount}" FontSize="12" />
+                                            <TextBlock Text="abonnés" FontSize="12" />
+                                        </StackPanel>
+                                    </StackPanel>
                                 </StackPanel>
-                                <TextBlock Grid.Column="2" Text="{x:Bind FollowersCount}" FontSize="12" Opacity="0.5" VerticalAlignment="Center" />
+                                <Button
+                                    Grid.Column="3"
+                                    Content="{x:Bind FollowButtonText, Mode=OneWay}"
+                                    Background="{StaticResource SoundCloudOrangeBrush}"
+                                    Foreground="White"
+                                    FontWeight="SemiBold"
+                                    CornerRadius="6"
+                                    Padding="16,6"
+                                    VerticalAlignment="Center"
+                                    Click="OnFollowArtistResultClicked" />
                             </Grid>
                         </DataTemplate>
                     </ListView.ItemTemplate>

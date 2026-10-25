@@ -4,6 +4,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using SoundWin.App.ViewModels;
 using SoundWin.Core.Models;
+using SoundWin.Core.Services;
 
 namespace SoundWin.App.Views;
 
@@ -15,6 +16,8 @@ public sealed partial class SearchPage : Page
     {
         InitializeComponent();
         ViewModel = App.Services.GetRequiredService<SearchViewModel>();
+
+        Loaded += async (_, _) => await ViewModel.EnsureRecentsLoadedAsync();
 
         ViewModel.PropertyChanged += (s, e) =>
         {
@@ -36,7 +39,14 @@ public sealed partial class SearchPage : Page
         if (args.Reason == AutoSuggestionBoxTextChangeReason.UserInput)
         {
             ViewModel.SearchQuery = sender.Text;
-            sender.ItemsSource = ViewModel.Suggestions;
+            if (string.IsNullOrWhiteSpace(sender.Text))
+            {
+                _ = ViewModel.PerformSearchAsync("");
+            }
+            else
+            {
+                sender.ItemsSource = ViewModel.Suggestions;
+            }
         }
     }
 
@@ -58,11 +68,32 @@ public sealed partial class SearchPage : Page
         _ = ViewModel.PerformSearchAsync(SearchBox.Text);
     }
 
-    private async void OnTrackItemClick(object sender, ItemClickEventArgs e)
+    private void OnRecentQueryChipClicked(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button { Content: string q })
+        {
+            TriggerSearch(q);
+        }
+    }
+
+    private void OnClearRecentsClicked(object sender, RoutedEventArgs e)
+    {
+        ViewModel.ClearAllRecents();
+    }
+
+    private async void OnRecentTrackItemClicked(object sender, ItemClickEventArgs e)
     {
         if (e.ClickedItem is Track track)
         {
             await ViewModel.PlayTrack(track);
+        }
+    }
+
+    private void OnRemoveRecentTrackClicked(object sender, RoutedEventArgs e)
+    {
+        if (sender is FrameworkElement { DataContext: Track track })
+        {
+            ViewModel.RemoveRecentSearchedTrack(track);
         }
     }
 
@@ -84,6 +115,28 @@ public sealed partial class SearchPage : Page
         if (e.ClickedItem is User user && user.Id > 0)
         {
             MainWindowContent.Current?.NavigateToProfile(user.Id);
+        }
+    }
+
+    private async void OnFollowArtistResultClicked(object sender, RoutedEventArgs e)
+    {
+        if (sender is not FrameworkElement { DataContext: User user }) return;
+
+        var creds = App.Services.GetService<CredentialService>();
+        var api = App.Services.GetService<SoundCloudApiClient>();
+        var session = creds?.LoadSession();
+        if (session == null || !session.IsAuthenticated || api == null) return;
+
+        bool newState = !user.IsFollowed;
+        user.IsFollowed = newState;
+
+        bool ok = newState
+            ? await api.FollowUserAsync(session.UserId, user.Id)
+            : await api.UnfollowUserAsync(session.UserId, user.Id);
+
+        if (!ok)
+        {
+            user.IsFollowed = !newState;
         }
     }
 }

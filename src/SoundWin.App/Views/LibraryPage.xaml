@@ -126,18 +126,16 @@
                         <DataTemplate x:DataType="models:Playlist">
                             <Border
                                 Width="168"
-                                Padding="10"
+                                Padding="12"
                                 Margin="0,0,12,12"
                                 CornerRadius="10"
                                 Background="#16161C"
                                 BorderBrush="#18FFFFFF"
                                 BorderThickness="1">
-                                <StackPanel Spacing="8">
-                                    <Grid Width="146" Height="146">
-                                        <Border CornerRadius="8" Background="#22222A">
-                                            <Image Source="{x:Bind DisplayArtworkUrl}" Stretch="UniformToFill" />
-                                        </Border>
-                                    </Grid>
+                                <StackPanel Spacing="8" HorizontalAlignment="Stretch">
+                                    <Border Width="142" Height="142" CornerRadius="8" Background="#22222A" HorizontalAlignment="Center">
+                                        <Image Source="{x:Bind DisplayArtworkUrl}" Stretch="UniformToFill" />
+                                    </Border>
                                     <TextBlock Text="{x:Bind Title}" FontWeight="SemiBold" FontSize="13" TextTrimming="CharacterEllipsis" MaxLines="1" />
                                     <StackPanel Orientation="Horizontal" Spacing="4">
                                         <TextBlock Text="{x:Bind TrackCount}" FontSize="11" Opacity="0.6" />

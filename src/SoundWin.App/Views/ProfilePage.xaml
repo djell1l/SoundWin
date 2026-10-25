@@ -146,6 +146,21 @@
                 </SelectorBar>
 
                 <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                    <!-- S'abonner / Abonné(e) Button (For other artists' profiles) -->
+                    <Button
+                        Background="{StaticResource SoundCloudOrangeBrush}"
+                        Foreground="White"
+                        BorderThickness="0"
+                        CornerRadius="4"
+                        Padding="16,6"
+                        Visibility="{x:Bind Vm.IsOwnProfile, Mode=OneWay, Converter={StaticResource InvertedBooleanVisibilityConverter}}"
+                        Click="OnToggleFollowProfileClicked">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <SymbolIcon Symbol="AddFriend" />
+                            <TextBlock Text="{x:Bind Vm.User.FollowButtonText, Mode=OneWay, FallbackValue='Suivre'}" FontSize="12" FontWeight="SemiBold" />
+                        </StackPanel>
+                    </Button>
+
                     <Button
                         Background="#22FFFFFF"
                         BorderThickness="0"

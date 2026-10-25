@@ -151,6 +151,27 @@ public sealed partial class ProfilePage : Page
         }
     }
 
+    private async void OnToggleFollowProfileClicked(object sender, RoutedEventArgs e)
+    {
+        if (Vm.User == null) return;
+        var creds = App.Services.GetService<SoundWin.Core.Services.CredentialService>();
+        var api = App.Services.GetService<SoundWin.Core.Services.SoundCloudApiClient>();
+        var session = creds?.LoadSession();
+        if (session == null || !session.IsAuthenticated || api == null) return;
+
+        bool newState = !Vm.User.IsFollowed;
+        Vm.User.IsFollowed = newState;
+
+        bool ok = newState
+            ? await api.FollowUserAsync(session.UserId, Vm.User.Id)
+            : await api.UnfollowUserAsync(session.UserId, Vm.User.Id);
+
+        if (!ok)
+        {
+            Vm.User.IsFollowed = !newState;
+        }
+    }
+
     private void OnShareProfileClicked(object sender, RoutedEventArgs e)
     {
         if (Vm.User?.PermalinkUrl != null)

@@ -57,18 +57,16 @@
                                                 <Grid Width="156" Padding="0,0,0,4">
                                                     <Button
                                                         Width="156"
-                                                        Padding="0"
+                                                        Padding="6"
                                                         BorderThickness="0"
                                                         Background="Transparent"
                                                         CornerRadius="8"
-                                                        HorizontalContentAlignment="Left"
+                                                        HorizontalContentAlignment="Stretch"
                                                         Click="OnTrackCardClicked">
-                                                        <StackPanel Spacing="6" Padding="6">
-                                                            <Grid Width="144" Height="144">
-                                                                <Border CornerRadius="6" Background="#1E1E26">
-                                                                    <Image Source="{x:Bind HighResArtworkUrl}" Stretch="UniformToFill" />
-                                                                </Border>
-                                                            </Grid>
+                                                        <StackPanel Spacing="6" HorizontalAlignment="Stretch">
+                                                            <Border Width="144" Height="144" CornerRadius="6" Background="#1E1E26" HorizontalAlignment="Center">
+                                                                <Image Source="{x:Bind HighResArtworkUrl}" Stretch="UniformToFill" />
+                                                            </Border>
                                                             <TextBlock Text="{x:Bind Title}" FontWeight="Bold" FontSize="12" TextTrimming="CharacterEllipsis" MaxLines="1" />
                                                             <TextBlock Text="{x:Bind Artist}" FontSize="11" Opacity="0.65" TextTrimming="CharacterEllipsis" MaxLines="1" />
                                                         </StackPanel>
@@ -99,19 +97,17 @@
                                                     <!-- Main Card Button (Opens Playlist Detail View) -->
                                                     <Button
                                                         Width="156"
-                                                        Padding="0"
+                                                        Padding="6"
                                                         BorderThickness="0"
                                                         Background="Transparent"
                                                         CornerRadius="8"
-                                                        HorizontalContentAlignment="Left"
+                                                        HorizontalContentAlignment="Stretch"
                                                         Click="OnPlaylistCardClicked">
-                                                        <StackPanel Spacing="6" Padding="6">
+                                                        <StackPanel Spacing="6" HorizontalAlignment="Stretch">
                                                             <!-- Artwork -->
-                                                            <Grid Width="144" Height="144">
-                                                                <Border CornerRadius="6" Background="#1E1E26">
-                                                                    <Image Source="{x:Bind DisplayArtworkUrl}" Stretch="UniformToFill" />
-                                                                </Border>
-                                                            </Grid>
+                                                            <Border Width="144" Height="144" CornerRadius="6" Background="#1E1E26" HorizontalAlignment="Center">
+                                                                <Image Source="{x:Bind DisplayArtworkUrl}" Stretch="UniformToFill" />
+                                                            </Border>
                                                             <!-- Title & Author -->
                                                             <TextBlock Text="{x:Bind Title}" FontWeight="Bold" FontSize="12" TextTrimming="CharacterEllipsis" MaxLines="1" />
                                                             <TextBlock Text="{x:Bind Author}" FontSize="11" Opacity="0.65" TextTrimming="CharacterEllipsis" MaxLines="1" />
@@ -130,9 +126,11 @@
                                                         HorizontalAlignment="Right"
                                                         VerticalAlignment="Top"
                                                         Margin="0,108,14,0"
+                                                        HorizontalContentAlignment="Center"
+                                                        VerticalContentAlignment="Center"
                                                         ToolTipService.ToolTip="Lire immédiatement cette sélection"
                                                         Click="OnQuickPlayPlaylistClicked">
-                                                        <FontIcon Glyph="&#xE768;" FontSize="13" Margin="2,0,0,0" />
+                                                        <SymbolIcon Symbol="Play" />
                                                     </Button>
                                                 </Grid>
                                             </DataTemplate>

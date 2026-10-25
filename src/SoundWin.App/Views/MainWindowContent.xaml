@@ -69,27 +69,27 @@
             <NavigationView.MenuItems>
                 <NavigationViewItem Content="Accueil (Découvrir)" Tag="home">
                     <NavigationViewItem.Icon>
-                        <FontIcon Glyph="&#xE80F;" />
+                        <SymbolIcon Symbol="Home" />
                     </NavigationViewItem.Icon>
                 </NavigationViewItem>
                 <NavigationViewItem Content="Flux d'Actualités (Stream)" Tag="stream">
                     <NavigationViewItem.Icon>
-                        <FontIcon Glyph="&#xE753;" />
+                        <SymbolIcon Symbol="Audio" />
                     </NavigationViewItem.Icon>
                 </NavigationViewItem>
                 <NavigationViewItem Content="Rechercher" Tag="search">
                     <NavigationViewItem.Icon>
-                        <FontIcon Glyph="&#xE721;" />
+                        <SymbolIcon Symbol="Find" />
                     </NavigationViewItem.Icon>
                 </NavigationViewItem>
                 <NavigationViewItem Content="Mon Profil" Tag="profile">
                     <NavigationViewItem.Icon>
-                        <FontIcon Glyph="&#xE77B;" />
+                        <SymbolIcon Symbol="Contact" />
                     </NavigationViewItem.Icon>
                 </NavigationViewItem>
                 <NavigationViewItem Content="Ma Bibliothèque" Tag="library">
                     <NavigationViewItem.Icon>
-                        <FontIcon Glyph="&#xE8D7;" />
+                        <SymbolIcon Symbol="Library" />
                     </NavigationViewItem.Icon>
                 </NavigationViewItem>
             </NavigationView.MenuItems>
@@ -100,17 +100,17 @@
         <!-- BOTTOM PERSISTENT PLAYER BAR -->
         <Border
             Grid.Row="2"
-            Height="90"
+            Height="92"
             Background="#E6101014"
             BorderBrush="#25FFFFFF"
             BorderThickness="0,1,0,0"
             Padding="20,0">
 
-            <Grid ColumnDefinitions="280,*,240" VerticalAlignment="Center">
+            <Grid ColumnDefinitions="290,*,310" VerticalAlignment="Center">
                 <!-- LEFT: Current Track Info & Heart -->
                 <Grid Grid.Column="0" ColumnDefinitions="Auto,*,Auto" VerticalAlignment="Center">
                     <!-- Artwork -->
-                    <Border CornerRadius="8" Width="52" Height="52" Margin="0,0,12,0">
+                    <Border CornerRadius="8" Width="52" Height="52" Margin="0,0,12,0" Background="#1E1E26">
                         <Image Source="{x:Bind PlayerVm.CurrentTrack.HighResArtworkUrl, Mode=OneWay, FallbackValue='ms-appx:///Assets/DefaultCover.png'}" Stretch="UniformToFill" />
                     </Border>
 
@@ -133,10 +133,16 @@
                     <!-- Heart Like Button -->
                     <Button
                         Grid.Column="2"
+                        Width="34"
+                        Height="34"
+                        Padding="0"
+                        CornerRadius="17"
+                        HorizontalContentAlignment="Center"
+                        VerticalContentAlignment="Center"
                         Background="Transparent"
                         BorderThickness="0"
-                        Padding="6"
                         VerticalAlignment="Center"
+                        ToolTipService.ToolTip="Coup de cœur (Like)"
                         Click="OnLikeButtonClicked">
                         <FontIcon
                             Glyph="{x:Bind PlayerVm.CurrentTrack.IsLiked, Mode=OneWay, Converter={StaticResource BooleanHeartConverter}}"
@@ -145,56 +151,95 @@
                     </Button>
                 </Grid>
 
-                <!-- CENTER: Playback Controls + Interactive Waveform -->
-                <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="4" HorizontalAlignment="Stretch" Margin="30,0">
+                <!-- CENTER: Playback Controls (Authentic WinUI SymbolIcons!) + Interactive Waveform -->
+                <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="4" HorizontalAlignment="Stretch" Margin="24,0">
                     <!-- Buttons Row -->
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="16" VerticalAlignment="Center">
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="12" VerticalAlignment="Center">
                         <!-- Shuffle -->
                         <Button
+                            Width="34"
+                            Height="34"
+                            Padding="0"
+                            CornerRadius="17"
+                            HorizontalContentAlignment="Center"
+                            VerticalContentAlignment="Center"
                             Background="Transparent"
                             BorderThickness="0"
-                            Padding="6"
+                            ToolTipService.ToolTip="Lecture aléatoire"
                             Click="OnShuffleClicked">
-                            <FontIcon Glyph="&#xE8B1;" FontSize="13" Opacity="{x:Bind PlayerVm.IsShuffle, Mode=OneWay, Converter={StaticResource BooleanOpacityConverter}}" />
+                            <SymbolIcon
+                                Symbol="Shuffle"
+                                Foreground="{x:Bind PlayerVm.IsShuffle, Mode=OneWay, Converter={StaticResource BooleanOrangeBrushConverter}}" />
                         </Button>
 
                         <!-- Previous -->
                         <Button
+                            Width="34"
+                            Height="34"
+                            Padding="0"
+                            CornerRadius="17"
+                            HorizontalContentAlignment="Center"
+                            VerticalContentAlignment="Center"
                             Background="Transparent"
                             BorderThickness="0"
-                            Padding="6"
+                            ToolTipService.ToolTip="Précédent"
                             Click="OnPreviousClicked">
-                            <FontIcon Glyph="&#xE892;" FontSize="14" />
+                            <SymbolIcon Symbol="Previous" />
                         </Button>
 
-                        <!-- Play/Pause Primary -->
+                        <!-- Play/Pause Primary Circle Button (100% Centered Native SymbolIcons!) -->
                         <Button
-                            Width="38"
-                            Height="38"
-                            CornerRadius="19"
+                            Width="40"
+                            Height="40"
+                            CornerRadius="20"
+                            Padding="0"
+                            HorizontalContentAlignment="Center"
+                            VerticalContentAlignment="Center"
                             Background="{StaticResource SoundCloudOrangeBrush}"
                             Foreground="White"
-                            Padding="0"
+                            BorderThickness="0"
                             Click="OnPlayPauseClicked">
-                            <FontIcon Glyph="{x:Bind PlayerVm.IsPlaying, Mode=OneWay, Converter={StaticResource BooleanPlayIconConverter}}" FontSize="15" Margin="2,0,0,0" />
+                            <Grid HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <SymbolIcon
+                                    Symbol="Play"
+                                    Visibility="{x:Bind PlayerVm.IsPlaying, Mode=OneWay, Converter={StaticResource InvertedBooleanVisibilityConverter}}" />
+                                <SymbolIcon
+                                    Symbol="Pause"
+                                    Visibility="{x:Bind PlayerVm.IsPlaying, Mode=OneWay, Converter={StaticResource BooleanVisibilityConverter}}" />
+                            </Grid>
                         </Button>
 
                         <!-- Next -->
                         <Button
+                            Width="34"
+                            Height="34"
+                            Padding="0"
+                            CornerRadius="17"
+                            HorizontalContentAlignment="Center"
+                            VerticalContentAlignment="Center"
                             Background="Transparent"
                             BorderThickness="0"
-                            Padding="6"
+                            ToolTipService.ToolTip="Suivant"
                             Click="OnNextClicked">
-                            <FontIcon Glyph="&#xE893;" FontSize="14" />
+                            <SymbolIcon Symbol="Next" />
                         </Button>
 
                         <!-- Repeat -->
                         <Button
+                            Width="34"
+                            Height="34"
+                            Padding="0"
+                            CornerRadius="17"
+                            HorizontalContentAlignment="Center"
+                            VerticalContentAlignment="Center"
                             Background="Transparent"
                             BorderThickness="0"
-                            Padding="6"
+                            ToolTipService.ToolTip="Répéter"
                             Click="OnRepeatClicked">
-                            <FontIcon Glyph="&#xE8EE;" FontSize="13" Opacity="0.7" />
+                            <FontIcon
+                                Glyph="{x:Bind PlayerVm.RepeatGlyph, Mode=OneWay}"
+                                FontSize="15"
+                                Foreground="{x:Bind PlayerVm.IsRepeatActive, Mode=OneWay, Converter={StaticResource BooleanOrangeBrushConverter}}" />
                         </Button>
                     </StackPanel>
 
@@ -203,7 +248,7 @@
                         <TextBlock
                             Grid.Column="0"
                             Text="{x:Bind PlayerVm.FormattedPosition, Mode=OneWay, FallbackValue='0:00'}"
-                            FontSize="10"
+                            FontSize="11"
                             FontFamily="Consolas, Segoe UI"
                             Opacity="0.75"
                             VerticalAlignment="Center"
@@ -223,7 +268,7 @@
                         <TextBlock
                             Grid.Column="2"
                             Text="{x:Bind PlayerVm.FormattedDuration, Mode=OneWay, FallbackValue='0:00'}"
-                            FontSize="10"
+                            FontSize="11"
                             FontFamily="Consolas, Segoe UI"
                             Opacity="0.75"
                             VerticalAlignment="Center"
@@ -231,31 +276,160 @@
                     </Grid>
                 </StackPanel>
 
-                <!-- RIGHT: Volume & Queue -->
-                <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="12" VerticalAlignment="Center">
+                <!-- RIGHT: Volume (with % display!), Reactions/Comments Flyout & Queue -->
+                <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8" VerticalAlignment="Center">
                     <!-- Volume Icon Button -->
                     <Button
+                        Width="32"
+                        Height="32"
+                        Padding="0"
+                        CornerRadius="16"
+                        HorizontalContentAlignment="Center"
+                        VerticalContentAlignment="Center"
                         Background="Transparent"
                         BorderThickness="0"
-                        Padding="6"
+                        ToolTipService.ToolTip="Muet / Rétablir le son"
                         Click="OnMuteToggleClicked">
-                        <FontIcon Glyph="&#xE767;" FontSize="14" Opacity="0.8" />
+                        <FontIcon Glyph="{x:Bind PlayerVm.VolumeGlyph, Mode=OneWay}" FontSize="15" Opacity="0.85" />
                     </Button>
 
                     <!-- Volume Slider -->
                     <Slider
-                        Width="90"
+                        Width="84"
                         Minimum="0"
                         Maximum="1"
                         StepFrequency="0.01"
+                        IsThumbToolTipEnabled="False"
                         Value="{x:Bind PlayerVm.Volume, Mode=TwoWay}"
                         VerticalAlignment="Center" />
 
-                    <!-- Queue Button with Flyout -->
+                    <!-- Volume Percentage Badge (e.g. 100%) -->
+                    <TextBlock
+                        Text="{x:Bind PlayerVm.FormattedVolumePercent, Mode=OneWay}"
+                        Width="38"
+                        TextAlignment="Right"
+                        FontSize="12"
+                        FontWeight="SemiBold"
+                        Opacity="0.85"
+                        VerticalAlignment="Center"
+                        Margin="0,0,4,0" />
+
+                    <!-- Reactions & Comments Flyout Button (Read, Post & Reply!) -->
                     <Button
+                        Width="34"
+                        Height="34"
+                        Padding="0"
+                        CornerRadius="17"
+                        HorizontalContentAlignment="Center"
+                        VerticalContentAlignment="Center"
                         Background="Transparent"
                         BorderThickness="0"
-                        Padding="6"
+                        ToolTipService.ToolTip="Commentaires et réactions sur ce titre">
+                        <Button.Flyout>
+                            <Flyout Placement="Top">
+                                <Grid Width="380" Height="460" RowDefinitions="Auto,*,Auto" RowSpacing="12">
+                                    <!-- Header -->
+                                    <StackPanel Grid.Row="0" Spacing="2" BorderBrush="#25FFFFFF" BorderThickness="0,0,0,1" Padding="0,0,0,8">
+                                        <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                            <SymbolIcon Symbol="Comment" Foreground="{StaticResource SoundCloudOrangeBrush}" />
+                                            <TextBlock Text="Réactions &amp; Commentaires" FontWeight="Bold" FontSize="15" />
+                                        </StackPanel>
+                                        <TextBlock Text="Cliquez sur Répondre pour mentionner un auditeur ou réagissez au timestamp actuel." FontSize="11" Opacity="0.65" TextWrapping="Wrap" />
+                                    </StackPanel>
+
+                                    <!-- Comments List -->
+                                    <ListView
+                                        Grid.Row="1"
+                                        ItemsSource="{x:Bind PlayerVm.CurrentComments, Mode=OneWay}"
+                                        SelectionMode="None"
+                                        IsItemClickEnabled="False">
+                                        <ListView.ItemTemplate>
+                                            <DataTemplate x:DataType="models:TrackComment">
+                                                <Border
+                                                    Padding="8"
+                                                    Margin="0,0,0,6"
+                                                    CornerRadius="8"
+                                                    Background="#16161E"
+                                                    BorderBrush="#18FFFFFF"
+                                                    BorderThickness="1">
+                                                    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
+                                                        <PersonPicture
+                                                            Grid.Column="0"
+                                                            Width="32"
+                                                            Height="32"
+                                                            VerticalAlignment="Top"
+                                                            ProfilePicture="{x:Bind HighResAvatarUrl}"
+                                                            DisplayName="{x:Bind Username}" />
+                                                        <StackPanel Grid.Column="1" Spacing="3">
+                                                            <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                                                                <TextBlock Text="{x:Bind Username}" FontSize="12" FontWeight="Bold" />
+                                                                <Border Background="#25FF5500" CornerRadius="3" Padding="5,1">
+                                                                    <TextBlock Text="{x:Bind FormattedTimestamp}" FontSize="10" Foreground="{StaticResource SoundCloudOrangeBrush}" FontWeight="SemiBold" />
+                                                                </Border>
+                                                            </StackPanel>
+                                                            <TextBlock Text="{x:Bind Body}" FontSize="12" Opacity="0.9" TextWrapping="Wrap" />
+                                                        </StackPanel>
+                                                        <Button
+                                                            Grid.Column="2"
+                                                            Content="Répondre"
+                                                            FontSize="10"
+                                                            Padding="8,4"
+                                                            VerticalAlignment="Top"
+                                                            Background="#20FFFFFF"
+                                                            BorderThickness="0"
+                                                            CornerRadius="4"
+                                                            Click="OnReplyToCommentClicked" />
+                                                    </Grid>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ListView.ItemTemplate>
+                                    </ListView>
+
+                                    <!-- Quick Reactions + Comment Input Box -->
+                                    <StackPanel Grid.Row="2" Spacing="8" BorderBrush="#25FFFFFF" BorderThickness="0,1,0,0" Padding="0,8,0,0">
+                                        <!-- Quick Reaction Pills -->
+                                        <StackPanel Orientation="Horizontal" Spacing="6">
+                                            <Button Content="Incroyable" FontSize="11" Padding="8,3" CornerRadius="12" Click="OnQuickReactionClicked" />
+                                            <Button Content="Lourd !" FontSize="11" Padding="8,3" CornerRadius="12" Click="OnQuickReactionClicked" />
+                                            <Button Content="Classique" FontSize="11" Padding="8,3" CornerRadius="12" Click="OnQuickReactionClicked" />
+                                            <Button Content="En boucle" FontSize="11" Padding="8,3" CornerRadius="12" Click="OnQuickReactionClicked" />
+                                        </StackPanel>
+
+                                        <!-- Comment Input + Send -->
+                                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                            <TextBox
+                                                x:Name="NewCommentTextBox"
+                                                Grid.Column="0"
+                                                PlaceholderText="Écrire un commentaire à ce moment..."
+                                                FontSize="12"
+                                                KeyDown="OnNewCommentKeyDown" />
+                                            <Button
+                                                Grid.Column="1"
+                                                Background="{StaticResource SoundCloudOrangeBrush}"
+                                                Foreground="White"
+                                                CornerRadius="6"
+                                                Padding="12,6"
+                                                Click="OnSendCommentClicked">
+                                                <SymbolIcon Symbol="Send" />
+                                            </Button>
+                                        </Grid>
+                                    </StackPanel>
+                                </Grid>
+                            </Flyout>
+                        </Button.Flyout>
+                        <SymbolIcon Symbol="Comment" />
+                    </Button>
+
+                    <!-- Queue Button with Flyout -->
+                    <Button
+                        Width="34"
+                        Height="34"
+                        Padding="0"
+                        CornerRadius="17"
+                        HorizontalContentAlignment="Center"
+                        VerticalContentAlignment="Center"
+                        Background="Transparent"
+                        BorderThickness="0"
                         ToolTipService.ToolTip="File de lecture">
                         <Button.Flyout>
                             <Flyout Placement="Top">
@@ -265,7 +439,9 @@
                                         <ListView.ItemTemplate>
                                             <DataTemplate x:DataType="models:Track">
                                                 <Grid Padding="6,4" ColumnDefinitions="Auto,*">
-                                                    <Image Source="{x:Bind HighResArtworkUrl}" Width="32" Height="32" Margin="0,0,8,0" />
+                                                    <Border Grid.Column="0" Width="34" Height="34" CornerRadius="4" Margin="0,0,10,0">
+                                                        <Image Source="{x:Bind HighResArtworkUrl}" Stretch="UniformToFill" />
+                                                    </Border>
                                                     <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                                         <TextBlock Text="{x:Bind Title}" FontSize="12" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
                                                         <TextBlock Text="{x:Bind Artist}" FontSize="10" Opacity="0.6" TextTrimming="CharacterEllipsis" />
@@ -277,7 +453,7 @@
                                 </StackPanel>
                             </Flyout>
                         </Button.Flyout>
-                        <FontIcon Glyph="&#xE90B;" FontSize="15" Opacity="0.8" />
+                        <SymbolIcon Symbol="MusicInfo" />
                     </Button>
                 </StackPanel>
             </Grid>
