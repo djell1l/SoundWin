@@ -17,9 +17,11 @@
     <ApplicationIcon>app.ico</ApplicationIcon>
     <EnableMsixTooling>false</EnableMsixTooling>
     <SatelliteResourceLanguages>en-US;fr-FR;fr;en</SatelliteResourceLanguages>
-    <Version>0.1.0-edge.1</Version>
-    <PackageVersion>0.1.0-edge.1</PackageVersion>
-    <InformationalVersion>0.1.0-edge.1</InformationalVersion>
+    <Product>SCwin</Product>
+    <AssemblyTitle>SCwin</AssemblyTitle>
+    <Version>0.1.0-edge.8</Version>
+    <PackageVersion>0.1.0-edge.8</PackageVersion>
+    <InformationalVersion>0.1.0-edge.8</InformationalVersion>
   </PropertyGroup>
 
   <ItemGroup>

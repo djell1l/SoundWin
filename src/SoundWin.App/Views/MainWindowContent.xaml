@@ -13,7 +13,7 @@
                 <Border CornerRadius="4">
                     <Image Source="ms-appx:///Assets/Square44x44Logo.png" Width="22" Height="22" />
                 </Border>
-                <TextBlock Text="SoundWin" FontWeight="Bold" FontSize="14" VerticalAlignment="Center" />
+                <TextBlock Text="SCwin" FontWeight="Bold" FontSize="14" VerticalAlignment="Center" />
                 <Border Background="#25FF5500" CornerRadius="4" Padding="6,2" Margin="4,0,0,0">
                     <TextBlock Text="EDGE" FontSize="10" FontWeight="Bold" Foreground="{StaticResource SoundCloudOrangeBrush}" />
                 </Border>
@@ -53,7 +53,56 @@
                     </Grid>
                 </Button>
 
-                <PersonPicture x:Name="TitleUserAvatar" Width="28" Height="28" Tapped="OnUserAvatarTapped" />
+                <Button
+                    x:Name="TitleUserButton"
+                    Background="Transparent"
+                    BorderThickness="0"
+                    Padding="2"
+                    CornerRadius="16"
+                    ToolTipService.ToolTip="{x:Bind MainVm.ActiveUsername, Mode=OneWay}">
+                    <PersonPicture
+                        x:Name="TitleUserAvatar"
+                        Width="30"
+                        Height="30"
+                        ProfilePicture="{x:Bind MainVm.ActiveUserAvatar, Mode=OneWay}"
+                        DisplayName="{x:Bind MainVm.ActiveUsername, Mode=OneWay}" />
+                    <Button.Flyout>
+                        <MenuFlyout Placement="BottomEdgeAlignedRight">
+                            <MenuFlyoutItem Text="Profil" Click="OnMenuProfileClicked">
+                                <MenuFlyoutItem.Icon>
+                                    <SymbolIcon Symbol="Contact" />
+                                </MenuFlyoutItem.Icon>
+                            </MenuFlyoutItem>
+                            <MenuFlyoutItem Text="Favoris (Mentions J'aime)" Click="OnMenuLikesClicked">
+                                <MenuFlyoutItem.Icon>
+                                    <SymbolIcon Symbol="Favorite" />
+                                </MenuFlyoutItem.Icon>
+                            </MenuFlyoutItem>
+                            <MenuFlyoutItem Text="Playlists" Click="OnMenuPlaylistsClicked">
+                                <MenuFlyoutItem.Icon>
+                                    <FontIcon Glyph="&#xE8FD;" />
+                                </MenuFlyoutItem.Icon>
+                            </MenuFlyoutItem>
+                            <MenuFlyoutItem Text="Abonnements" Click="OnMenuFollowingsClicked">
+                                <MenuFlyoutItem.Icon>
+                                    <FontIcon Glyph="&#xE716;" />
+                                </MenuFlyoutItem.Icon>
+                            </MenuFlyoutItem>
+                            <MenuFlyoutSeparator />
+                            <MenuFlyoutItem Text="Paramètres" Click="OnMenuSettingsClicked">
+                                <MenuFlyoutItem.Icon>
+                                    <SymbolIcon Symbol="Setting" />
+                                </MenuFlyoutItem.Icon>
+                            </MenuFlyoutItem>
+                            <MenuFlyoutSeparator />
+                            <MenuFlyoutItem Text="Déconnexion" Click="OnMenuLogoutClicked">
+                                <MenuFlyoutItem.Icon>
+                                    <FontIcon Glyph="&#xF3B1;" />
+                                </MenuFlyoutItem.Icon>
+                            </MenuFlyoutItem>
+                        </MenuFlyout>
+                    </Button.Flyout>
+                </Button>
             </StackPanel>
         </Grid>
 

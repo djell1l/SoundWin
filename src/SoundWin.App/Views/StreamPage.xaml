@@ -6,7 +6,7 @@
     xmlns:controls="using:SoundWin.App.Controls">
 
     <ScrollViewer Padding="32,24,32,48">
-        <StackPanel MaxWidth="880" HorizontalAlignment="Left" Spacing="24">
+        <StackPanel HorizontalAlignment="Stretch" Spacing="24">
             <!-- Header Banner -->
             <Grid Padding="24" CornerRadius="12" Background="#18181E" BorderBrush="#25FFFFFF" BorderThickness="1">
                 <StackPanel Spacing="6">

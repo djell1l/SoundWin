@@ -50,7 +50,7 @@
             Grid.Row="2"
             Visibility="{x:Bind ViewModel.ShowRecentsPanel, Mode=OneWay, Converter={StaticResource BooleanVisibilityConverter}}"
             VerticalScrollBarVisibility="Auto">
-            <StackPanel MaxWidth="760" HorizontalAlignment="Left" Spacing="24">
+            <StackPanel HorizontalAlignment="Stretch" Spacing="24">
 
                 <!-- Recent Queries Pills -->
                 <StackPanel Spacing="10">

@@ -4,10 +4,10 @@ using System.IO;
 using System.IO.Compression;
 using System.Reflection;
 
-[assembly: AssemblyTitle("SoundWin Setup")]
-[assembly: AssemblyDescription("Installateur SoundWin")]
+[assembly: AssemblyTitle("SCwin Setup")]
+[assembly: AssemblyDescription("Installateur SCwin")]
 [assembly: AssemblyCompany("SoundWin")]
-[assembly: AssemblyProduct("SoundWin")]
+[assembly: AssemblyProduct("SCwin")]
 [assembly: AssemblyVersion("0.1.0.0")]
 [assembly: AssemblyFileVersion("0.1.0.0")]
 

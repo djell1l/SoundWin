@@ -23,14 +23,24 @@ public sealed partial class HomePage : Page
 
     private async void OnLoaded(object sender, RoutedEventArgs e)
     {
-        LoadingRing.IsActive = true;
-        LoadingRing.Visibility = Visibility.Visible;
-        ErrorInfoBar.IsOpen = false;
+        if (ViewModel.Shelves.Count == 0)
+        {
+            LoadingRing.IsActive = true;
+            LoadingRing.Visibility = Visibility.Visible;
+            ErrorInfoBar.IsOpen = false;
+        }
 
         try
         {
-            await ViewModel.LoadAsync();
-            ShelvesContainer.ItemsSource = ViewModel.Shelves;
+            if (ShelvesContainer.ItemsSource == null)
+            {
+                ShelvesContainer.ItemsSource = ViewModel.Shelves;
+            }
+
+            if (ViewModel.Shelves.Count == 0)
+            {
+                await ViewModel.LoadAsync();
+            }
         }
         catch (Exception ex)
         {

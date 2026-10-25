@@ -26,8 +26,15 @@ public sealed partial class ProfilePage : Page
     protected override async void OnNavigatedTo(NavigationEventArgs e)
     {
         base.OnNavigatedTo(e);
-        long? userId = e.Parameter is long id ? id : null;
-        await Vm.InitializeAsync(userId);
+        try
+        {
+            long? userId = e.Parameter is long id ? id : null;
+            await Vm.InitializeAsync(userId);
+        }
+        catch (Exception ex)
+        {
+            App.Trace($"ProfilePage OnNavigatedTo error: {ex}");
+        }
     }
 
     private void OnAvatarAreaPointerEntered(object sender, PointerRoutedEventArgs e)

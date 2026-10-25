@@ -124,6 +124,76 @@ public partial class App : Application
             Trace("Activating MainWindow...");
             window.Activate();
             Trace("MainWindow Activated!");
+
+            // Restore last played track state (without auto-starting audio)
+            var settings = Services.GetRequiredService<SettingsService>();
+            if (settings.Current.LastPlayedTrackId > 0)
+            {
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        var tracks = await apiClient.GetTracksByIdsAsync(new[] { settings.Current.LastPlayedTrackId });
+                        var track = System.Linq.Enumerable.FirstOrDefault(tracks);
+                        if (track != null)
+                        {
+                            var playerVm = Services.GetRequiredService<PlayerViewModel>();
+                            var pos = TimeSpan.FromSeconds(settings.Current.LastPlayedPositionSeconds);
+                            SoundWin.Core.Utils.AppDispatcher.Dispatch(() =>
+                            {
+                                playerVm.CurrentTrack = track;
+                                playerVm.Position = pos;
+                            });
+                        }
+                    }
+                    catch { }
+                });
+            }
+
+            // Optional auto-check updates on startup
+            if (settings.Current.AutoCheckUpdatesOnStartup)
+            {
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        await Task.Delay(3000); // Wait for UI to settle
+                        var update = await SoundWin.App.Services.UpdateService.CheckForUpdatesAsync(settings.Current.UpdateChannel);
+                        if (update != null)
+                        {
+                            SoundWin.Core.Utils.AppDispatcher.Dispatch(async () =>
+                            {
+                                try
+                                {
+                                    if (MainWindow?.Content is FrameworkElement root && root.XamlRoot != null)
+                                    {
+                                        var dialog = new Microsoft.UI.Xaml.Controls.ContentDialog
+                                        {
+                                            XamlRoot = root.XamlRoot,
+                                            Title = "Mise à jour disponible",
+                                            Content = $"Une nouvelle version de SCwin ({update.TagName}) est disponible sur le canal {settings.Current.UpdateChannel}.\n\nSouhaitez-vous la télécharger ?",
+                                            PrimaryButtonText = "Télécharger",
+                                            SecondaryButtonText = "Plus tard",
+                                            DefaultButton = Microsoft.UI.Xaml.Controls.ContentDialogButton.Primary
+                                        };
+                                        var result = await dialog.ShowAsync();
+                                        if (result == Microsoft.UI.Xaml.Controls.ContentDialogResult.Primary && !string.IsNullOrEmpty(update.HtmlUrl))
+                                        {
+                                            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                                            {
+                                                FileName = update.HtmlUrl,
+                                                UseShellExecute = true
+                                            });
+                                        }
+                                    }
+                                }
+                                catch { }
+                            });
+                        }
+                    }
+                    catch { }
+                });
+            }
         }
         catch (Exception ex)
         {

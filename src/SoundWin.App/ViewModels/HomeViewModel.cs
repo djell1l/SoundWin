@@ -36,7 +36,54 @@ public partial class HomeViewModel : ObservableObject
         _player = player;
         _credentials = credentials;
 
-        _apiClient.TrackLikeChanged += (_, _) => _ = RefreshSidebarAsync();
+        _apiClient.TrackLikeChanged += OnTrackLikeChanged;
+    }
+
+    private async void OnTrackLikeChanged(long trackId, bool isLiked)
+    {
+        var session = _credentials.LoadSession();
+        if (session == null || !session.IsAuthenticated || session.UserId <= 0) return;
+
+        if (isLiked)
+        {
+            TotalLikesCount++;
+            if (!SidebarLikedTracks.Any(t => t.Id == trackId))
+            {
+                try
+                {
+                    var tracks = await _apiClient.GetTracksByIdsAsync(new[] { trackId });
+                    var track = tracks.FirstOrDefault();
+                    if (track != null)
+                    {
+                        track.IsLiked = true;
+                        AppDispatcher.Dispatch(() =>
+                        {
+                            if (!SidebarLikedTracks.Any(t => t.Id == trackId))
+                            {
+                                SidebarLikedTracks.Insert(0, track);
+                                if (SidebarLikedTracks.Count > 4)
+                                {
+                                    SidebarLikedTracks.RemoveAt(SidebarLikedTracks.Count - 1);
+                                }
+                            }
+                        });
+                    }
+                }
+                catch { }
+            }
+        }
+        else
+        {
+            if (TotalLikesCount > 0) TotalLikesCount--;
+            AppDispatcher.Dispatch(() =>
+            {
+                var existing = SidebarLikedTracks.FirstOrDefault(t => t.Id == trackId);
+                if (existing != null)
+                {
+                    SidebarLikedTracks.Remove(existing);
+                }
+            });
+        }
     }
 
     [RelayCommand]

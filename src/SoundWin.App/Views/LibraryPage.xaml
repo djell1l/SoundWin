@@ -6,7 +6,7 @@
     xmlns:controls="using:SoundWin.App.Controls">
 
     <ScrollViewer Padding="32,24,32,48">
-        <StackPanel MaxWidth="920" HorizontalAlignment="Left" Spacing="28">
+        <StackPanel HorizontalAlignment="Stretch" Spacing="28">
             <!-- NOT LOGGED IN STATE -->
             <Grid
                 x:Name="LoginPromptCard"

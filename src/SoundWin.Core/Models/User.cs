@@ -74,7 +74,7 @@ public partial class User : ObservableObject
     {
         get
         {
-            if (string.IsNullOrEmpty(AvatarUrl)) return "ms-appx:///Assets/AppIcon.png";
+            if (string.IsNullOrEmpty(AvatarUrl)) return string.Empty;
             return AvatarUrl.Replace("-large.", "-t500x500.");
         }
     }

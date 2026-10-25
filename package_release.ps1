@@ -14,7 +14,7 @@ if ($Channel -eq "Edge" -and $Version -notmatch "edge") {
     $version = $Version
 }
 
-Write-Host "Packaging SoundWin v$version (Canal: $Channel)..." -ForegroundColor Magenta
+Write-Host "Packaging SCwin v$version (Canal: $Channel)..." -ForegroundColor Magenta
 $appReleaseDir = "src\SoundWin.App\bin\x64\Release\net8.0-windows10.0.19041.0\win-x64"
 $installerReleaseDir = "src\SoundWin.Installer\bin\x64\Release\net8.0-windows10.0.19041.0\win-x64"
 
@@ -107,7 +107,7 @@ Copy-Item -Force "$installerReleaseDir\AppIcon.png" "dist\InstallerBundle\AppIco
 
 # 5. Packaging Portable Zip
 Write-Host "4. Packaging Portable Zip..."
-$portableZip = "dist\SoundWin-v$version-win-x64-portable.zip"
+$portableZip = "dist\SCwin-v$version-win-x64-portable.zip"
 if (Test-Path $portableZip) { Remove-Item -Force $portableZip }
 Compress-Archive -Path "$appReleaseDir\*" -DestinationPath $portableZip -CompressionLevel Optimal
 
@@ -122,7 +122,7 @@ if (Test-Path $stubExe) { Remove-Item -Force $stubExe }
 & $csc /target:winexe /optimize+ /platform:x64 /win32icon:"src\SoundWin.Installer\app.ico" /r:System.IO.Compression.dll /r:System.IO.Compression.FileSystem.dll /out:$stubExe "src\SoundWin.Installer\Bootstrapper.cs"
 if ($LASTEXITCODE -ne 0) { throw "CSC compilation of Bootstrapper failed." }
 
-$finalSetupExe = "dist\SoundWin-Setup-v$version-win-x64.exe"
+$finalSetupExe = "dist\SCwin-Setup-v$version-win-x64.exe"
 if (Test-Path $finalSetupExe) { Remove-Item -Force $finalSetupExe }
 
 $stubBytes = [System.IO.File]::ReadAllBytes((Resolve-Path $stubExe).Path)
@@ -164,14 +164,14 @@ if (Test-Path $localInstallDir) {
 
 # 8. Copy Setup to user desktop
 $desktopDir = [System.Environment]::GetFolderPath('Desktop')
-$desktopSetupsDir = Join-Path $desktopDir "SoundWin Setups"
+$desktopSetupsDir = Join-Path $desktopDir "SCwin Setups"
 if (-not (Test-Path $desktopSetupsDir)) {
     New-Item -ItemType Directory -Path $desktopSetupsDir -Force | Out-Null
 }
 
 if (Test-Path $finalSetupExe) {
-    Copy-Item -Force $finalSetupExe (Join-Path $desktopDir "SoundWin-Setup-Latest.exe")
-    Copy-Item -Force $finalSetupExe (Join-Path $desktopSetupsDir "SoundWin-Setup-v$version-win-x64.exe")
+    Copy-Item -Force $finalSetupExe (Join-Path $desktopDir "SCwin-Setup-Latest.exe")
+    Copy-Item -Force $finalSetupExe (Join-Path $desktopSetupsDir "SCwin-Setup-v$version-win-x64.exe")
     Write-Host "Setup copied to Desktop and '$desktopSetupsDir'!" -ForegroundColor Green
 }
 
@@ -179,7 +179,7 @@ if (Test-Path $finalSetupExe) {
 if ($PublishGitHub) {
     Write-Host "Publishing GitHub Release..." -ForegroundColor Magenta
     $tag = "v$version"
-    $title = if ($Channel -eq "Edge") { "SoundWin v$version [Bleeding Edge]" } else { "SoundWin v$version [Stable]" }
+    $title = if ($Channel -eq "Edge") { "SCwin v$version [Bleeding Edge]" } else { "SCwin v$version [Stable]" }
     $target = if ($Channel -eq "Edge") { "edge" } else { "main" }
     
     if ([string]::IsNullOrWhiteSpace($ReleaseNotes)) {

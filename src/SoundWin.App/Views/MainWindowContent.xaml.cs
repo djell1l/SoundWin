@@ -106,10 +106,42 @@ public sealed partial class MainWindowContent : UserControl
         }
     }
 
-    private void OnUserAvatarTapped(object sender, TappedRoutedEventArgs e)
+    private void OnMenuProfileClicked(object sender, RoutedEventArgs e)
     {
         MainNavView.SelectedItem = MainNavView.MenuItems[3];
         ContentFrame.Navigate(typeof(ProfilePage));
+    }
+
+    private void OnMenuLikesClicked(object sender, RoutedEventArgs e)
+    {
+        MainNavView.SelectedItem = MainNavView.MenuItems[4];
+        ContentFrame.Navigate(typeof(LibraryPage));
+    }
+
+    private void OnMenuPlaylistsClicked(object sender, RoutedEventArgs e)
+    {
+        MainNavView.SelectedItem = MainNavView.MenuItems[4];
+        ContentFrame.Navigate(typeof(LibraryPage));
+    }
+
+    private void OnMenuFollowingsClicked(object sender, RoutedEventArgs e)
+    {
+        MainNavView.SelectedItem = MainNavView.MenuItems[3];
+        ContentFrame.Navigate(typeof(ProfilePage));
+    }
+
+    private void OnMenuSettingsClicked(object sender, RoutedEventArgs e)
+    {
+        MainNavView.SelectedItem = MainNavView.SettingsItem;
+        ContentFrame.Navigate(typeof(SettingsPage));
+    }
+
+    private void OnMenuLogoutClicked(object sender, RoutedEventArgs e)
+    {
+        SettingsVm.Logout();
+        MainVm.RefreshSession();
+        MainNavView.SelectedItem = MainNavView.MenuItems[0];
+        ContentFrame.Navigate(typeof(HomePage));
     }
 
     private void OnPlayPauseClicked(object sender, RoutedEventArgs e)

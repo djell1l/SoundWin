@@ -6,7 +6,7 @@
     xmlns:controls="using:SoundWin.App.Controls">
 
     <ScrollViewer x:Name="MainScrollViewer" Padding="28,20,28,48" VerticalScrollBarVisibility="Auto">
-        <Grid ColumnDefinitions="*,290" ColumnSpacing="32" MaxWidth="1180" HorizontalAlignment="Stretch">
+        <Grid ColumnDefinitions="*,300" ColumnSpacing="32" HorizontalAlignment="Stretch">
 
             <!-- ==========================================
                  LEFT COLUMN: MAIN DISCOVERY SHELVES (Albums & Tracks)

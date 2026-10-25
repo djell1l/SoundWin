@@ -88,7 +88,7 @@ public sealed partial class MainWindow : Window
     {
         try
         {
-            using var key = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Uninstall\SoundWin");
+            using var key = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Uninstall\SCwin");
             var loc = key?.GetValue("InstallLocation") as string;
             if (!string.IsNullOrWhiteSpace(loc) && Directory.Exists(loc))
                 return loc;
@@ -187,10 +187,10 @@ public sealed partial class MainWindow : Window
 
         try
         {
-            var desktopShortcut = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), "SoundWin.lnk");
+            var desktopShortcut = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), "SCwin.lnk");
             if (File.Exists(desktopShortcut)) File.Delete(desktopShortcut);
 
-            var startMenuShortcut = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.StartMenu), "Programs", "SoundWin.lnk");
+            var startMenuShortcut = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.StartMenu), "Programs", "SCwin.lnk");
             if (File.Exists(startMenuShortcut)) File.Delete(startMenuShortcut);
         }
         catch { }
@@ -204,7 +204,7 @@ public sealed partial class MainWindow : Window
 
         try
         {
-            Registry.CurrentUser.DeleteSubKeyTree(@"Software\Microsoft\Windows\CurrentVersion\Uninstall\SoundWin", throwOnMissingSubKey: false);
+            Registry.CurrentUser.DeleteSubKeyTree(@"Software\Microsoft\Windows\CurrentVersion\Uninstall\SCwin", throwOnMissingSubKey: false);
         }
         catch { }
     }
@@ -252,7 +252,7 @@ public sealed partial class MainWindow : Window
             UninstallButton.Visibility = Visibility.Collapsed;
             HeaderTitleText.Text = "Installation terminée !";
             HeaderSubtitleText.Text = "SoundWin est prêt à être utilisé.";
-            InstallButton.Content = "Lancer SoundWin";
+            InstallButton.Content = "Lancer SCwin";
             InstallButton.IsEnabled = true;
             InstallButton.Click -= OnInstallClicked;
             InstallButton.Click += (_, _) =>
@@ -352,7 +352,7 @@ public sealed partial class MainWindow : Window
             try
             {
                 var desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
-                CreateShortcut(mainExe, Path.Combine(desktopPath, "SoundWin.lnk"), iconPath);
+                CreateShortcut(mainExe, Path.Combine(desktopPath, "SCwin.lnk"), iconPath);
             }
             catch { }
         }
@@ -363,7 +363,7 @@ public sealed partial class MainWindow : Window
             {
                 var startMenuPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.StartMenu), "Programs");
                 Directory.CreateDirectory(startMenuPath);
-                CreateShortcut(mainExe, Path.Combine(startMenuPath, "SoundWin.lnk"), iconPath);
+                CreateShortcut(mainExe, Path.Combine(startMenuPath, "SCwin.lnk"), iconPath);
             }
             catch { }
         }
@@ -375,11 +375,11 @@ public sealed partial class MainWindow : Window
             {
                 if (launchAtStartup)
                 {
-                    key.SetValue("SoundWin", $"\"{mainExe}\"");
+                    key.SetValue("SCwin", $"\"{mainExe}\"");
                 }
                 else
                 {
-                    key.DeleteValue("SoundWin", throwOnMissingValue: false);
+                    key.DeleteValue("SCwin", throwOnMissingValue: false);
                 }
             }
         }
@@ -392,9 +392,9 @@ public sealed partial class MainWindow : Window
     {
         try
         {
-            using var key = Registry.CurrentUser.CreateSubKey(@"Software\Microsoft\Windows\CurrentVersion\Uninstall\SoundWin");
+            using var key = Registry.CurrentUser.CreateSubKey(@"Software\Microsoft\Windows\CurrentVersion\Uninstall\SCwin");
             if (key == null) return;
-            key.SetValue("DisplayName", "SoundWin");
+            key.SetValue("DisplayName", "SCwin");
             key.SetValue("DisplayVersion", "0.1.0");
             key.SetValue("Publisher", "djell1l");
             key.SetValue("InstallLocation", targetDir);

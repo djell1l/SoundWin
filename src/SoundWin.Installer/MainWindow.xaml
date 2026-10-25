@@ -11,7 +11,7 @@
 
         <!-- Custom TitleBar -->
         <Grid Grid.Row="0" x:Name="AppTitleBar" Background="Transparent" Padding="14,0">
-            <TextBlock Text="Installateur SoundWin" FontSize="12" Opacity="0.7" VerticalAlignment="Center" />
+            <TextBlock Text="Installateur SCwin" FontSize="12" Opacity="0.7" VerticalAlignment="Center" />
         </Grid>
 
         <Grid Grid.Row="1" Padding="32,12,32,28" RowSpacing="20">
@@ -31,7 +31,7 @@
                         <Image Source="AppIcon.png" Stretch="UniformToFill" />
                     </Border>
                     <StackPanel VerticalAlignment="Center" Spacing="2">
-                        <TextBlock x:Name="HeaderTitleText" Text="Installation de SoundWin" FontSize="22" FontWeight="Bold" />
+                        <TextBlock x:Name="HeaderTitleText" Text="Installation de SCwin" FontSize="22" FontWeight="Bold" />
                         <TextBlock x:Name="HeaderSubtitleText" Text="Client SoundCloud natif et ultra-léger pour Windows 11" FontSize="13" Opacity="0.6" />
                     </StackPanel>
                 </StackPanel>

@@ -50,4 +50,29 @@ public sealed class SoundWinSettings
     /// Identifiants des morceaux joués récemment depuis la recherche (style Spotify).
     /// </summary>
     public List<long> RecentSearchedTrackIds { get; set; } = new();
+
+    /// <summary>
+    /// Identifiant du dernier morceau joué lors de la fermeture de l'application.
+    /// </summary>
+    public long LastPlayedTrackId { get; set; }
+
+    /// <summary>
+    /// Position de lecture en secondes sauvegardée à la fermeture.
+    /// </summary>
+    public double LastPlayedPositionSeconds { get; set; }
+
+    /// <summary>
+    /// Minimiser dans la zone de notification (systray) au lieu de fermer l'application.
+    /// </summary>
+    public bool MinimizeToTrayOnClose { get; set; } = true;
+
+    /// <summary>
+    /// Canal de mise à jour actif ("Edge" ou "Stable").
+    /// </summary>
+    public string UpdateChannel { get; set; } = "Edge";
+
+    /// <summary>
+    /// Recherche automatique des mises à jour au lancement.
+    /// </summary>
+    public bool AutoCheckUpdatesOnStartup { get; set; } = true;
 }

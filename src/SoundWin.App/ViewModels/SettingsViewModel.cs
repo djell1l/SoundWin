@@ -1,6 +1,8 @@
 using System;
+using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using SoundWin.App.Services;
 using SoundWin.Core.Models;
 using SoundWin.Core.Services;
 using SoundWin.Core.Utils;
@@ -47,6 +49,33 @@ public partial class SettingsViewModel : ObservableObject
     [ObservableProperty]
     private long _userId;
 
+    [ObservableProperty]
+    private string _currentVersion = UpdateService.CurrentVersion;
+
+    [ObservableProperty]
+    private string _updateChannel;
+
+    [ObservableProperty]
+    private bool _minimizeToTrayOnClose;
+
+    [ObservableProperty]
+    private bool _autoCheckUpdatesOnStartup;
+
+    [ObservableProperty]
+    private bool _isCheckingForUpdates;
+
+    [ObservableProperty]
+    private string _updateCheckResult = string.Empty;
+
+    [ObservableProperty]
+    private bool _isUpdateResultOpen;
+
+    [ObservableProperty]
+    private bool _hasUpdateAvailable;
+
+    [ObservableProperty]
+    private string _latestUpdateUrl = string.Empty;
+
     public string DiscordStatusTooltip => !IsDiscordRpcEnabled
         ? "Discord RPC : Désactivé"
         : IsDiscordConnected
@@ -83,6 +112,10 @@ public partial class SettingsViewModel : ObservableObject
         _discordRpcShowPaused = _settings.Current.DiscordRpcShowPaused;
         _discordRpcClientId = _settings.Current.DiscordRpcClientId;
         _isBridgeEnabled = _settings.Current.EnableSoundWinBridge;
+
+        _updateChannel = _settings.Current.UpdateChannel;
+        _minimizeToTrayOnClose = _settings.Current.MinimizeToTrayOnClose;
+        _autoCheckUpdatesOnStartup = _settings.Current.AutoCheckUpdatesOnStartup;
 
         _isDiscordConnected = _rpc.IsConnected;
         _discordStatusMessage = _rpc.StatusMessage;
@@ -157,6 +190,89 @@ public partial class SettingsViewModel : ObservableObject
     {
         _settings.Current.EnableSoundWinBridge = value;
         _settings.Save();
+    }
+
+    partial void OnUpdateChannelChanged(string value)
+    {
+        _settings.Current.UpdateChannel = value;
+        _settings.Save();
+    }
+
+    partial void OnMinimizeToTrayOnCloseChanged(bool value)
+    {
+        _settings.Current.MinimizeToTrayOnClose = value;
+        _settings.Save();
+    }
+
+    partial void OnAutoCheckUpdatesOnStartupChanged(bool value)
+    {
+        _settings.Current.AutoCheckUpdatesOnStartup = value;
+        _settings.Save();
+    }
+
+    [RelayCommand]
+    public async Task CheckForUpdatesAsync()
+    {
+        IsCheckingForUpdates = true;
+        IsUpdateResultOpen = false;
+        HasUpdateAvailable = false;
+
+        try
+        {
+            var update = await UpdateService.CheckForUpdatesAsync(UpdateChannel);
+            if (update != null)
+            {
+                HasUpdateAvailable = true;
+                LatestUpdateUrl = update.HtmlUrl;
+                UpdateCheckResult = $"Nouvelle version disponible : {update.TagName} !";
+                IsUpdateResultOpen = true;
+            }
+            else
+            {
+                UpdateCheckResult = $"Vous utilisez déjà la dernière version de SCwin ({CurrentVersion}).";
+                IsUpdateResultOpen = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            UpdateCheckResult = $"Erreur lors de la vérification : {ex.Message}";
+            IsUpdateResultOpen = true;
+        }
+        finally
+        {
+            IsCheckingForUpdates = false;
+        }
+    }
+
+    [RelayCommand]
+    public void OpenLatestUpdateUrl()
+    {
+        if (!string.IsNullOrEmpty(LatestUpdateUrl))
+        {
+            try
+            {
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = LatestUpdateUrl,
+                    UseShellExecute = true
+                });
+            }
+            catch { }
+        }
+    }
+
+    [RelayCommand]
+    public void OpenGitHubReleases()
+    {
+        try
+        {
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = "https://github.com/djell1l/SoundWin/releases",
+                UseShellExecute = true
+            });
+        }
+        catch { }
     }
 
     [RelayCommand]

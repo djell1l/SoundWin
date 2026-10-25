@@ -1,8 +1,8 @@
-# SoundWin
+# SCwin
 
 Running an entire Chromium browser in the background just to stream a few audio tracks on Windows is an insult to your hardware. If Apple gets to flex its sleek Swift and SwiftUI native ecosystem with apps like Nuage, why on earth shouldn't Windows get the exact same first-class treatment? Respect your ecosystem.
 
-SoundWin is the world's first 100% native SoundCloud client engineered from scratch in **C# (.NET 8)** and **WinUI 3**. No Electron. No CEF. No disguised web browser quietly devouring half a gigabyte of your RAM just to play an MP3. Either way, you're welcome.
+SCwin is the world's first 100% native SoundCloud client engineered from scratch in **C# (.NET 8)** and **WinUI 3**. No Electron. No CEF. No disguised web browser quietly devouring half a gigabyte of your RAM just to play an MP3. Either way, you're welcome.
 
 ---
 
@@ -38,14 +38,14 @@ SoundWin.sln
 
 ## Installation & Distribution
 
-### 1. Single-File WinUI 3 Setup (`SoundWin-Setup-v0.1.0-win-x64.exe`)
+### 1. Single-File WinUI 3 Setup (`SCwin-Setup-v0.1.0-win-x64.exe`)
 Download and run the single executable installer. It is a genuine Windows 11 setup wizard written in pure WinUI 3 that unpacks natively, creates a Desktop shortcut, registers in your Start Menu, and gets out of your way.
 
-### 2. Standalone Portable (`SoundWin-v0.1.0-win-x64-portable.zip`)
+### 2. Standalone Portable (`SCwin-v0.1.0-win-x64-portable.zip`)
 For minimalists and portable USB drives. Unzip anywhere, run `SoundWin.App.exe`, and you're good to go.
 
 ### 3. Local Native Install Script (`install_local.ps1`)
-To compile and install SoundWin natively from source on your local machine:
+To compile and install SCwin natively from source on your local machine:
 ```powershell
 .\install_local.ps1
 ```
@@ -112,4 +112,4 @@ Under this strong copyleft license:
 
 ## Disclaimer
 
-SoundWin is an unofficial third-party client built for experimental and educational purposes. SoundCloud is a registered trademark of SoundCloud Global Limited & Co. KG. This project is not affiliated with, endorsed by, or associated with SoundCloud. Use at your own discretion.
+SCwin is an unofficial third-party client built for experimental and educational purposes. SoundCloud is a registered trademark of SoundCloud Global Limited & Co. KG. This project is not affiliated with, endorsed by, or associated with SoundCloud. Use at your own discretion.

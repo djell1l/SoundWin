@@ -18,7 +18,7 @@ public partial class ProfileViewModel : ObservableObject
     private readonly AudioPlayerService _player;
 
     [ObservableProperty]
-    private User? _user;
+    private User _user = new() { Username = "Utilisateur" };
 
     [ObservableProperty]
     private bool _isOwnProfile;
@@ -190,42 +190,74 @@ public partial class ProfileViewModel : ObservableObject
 
             IsOwnProfile = session != null && session.IsAuthenticated && session.UserId == userId;
 
-            var user = await _apiClient.GetUserDetailsAsync(userId);
-            if (user != null)
+            if (IsOwnProfile && !string.IsNullOrEmpty(session?.Username))
             {
-                User = user;
-                PopulateEditFieldsFromUser(user);
+                User.Username = session.Username;
+                if (!string.IsNullOrEmpty(session.AvatarUrl))
+                {
+                    User.AvatarUrl = session.AvatarUrl;
+                }
             }
 
-            var tracksTask = _apiClient.GetUserTracksAsync(userId, 40);
-            var playlistsTask = _apiClient.GetUserPlaylistsAsync(userId, 40);
-            var repostsTask = _apiClient.GetUserRepostsAsync(userId, 30);
-            var likesTask = _apiClient.GetLikedTracksAsync(userId, 40);
-            var followingsTask = _apiClient.GetUserFollowingsAsync(userId, 16);
-            var linksTask = _apiClient.GetUserWebProfilesAsync(userId);
+            try
+            {
+                var user = await _apiClient.GetUserDetailsAsync(userId);
+                if (user != null)
+                {
+                    AppDispatcher.Dispatch(() =>
+                    {
+                        User = user;
+                        PopulateEditFieldsFromUser(user);
+                    });
+                }
+            }
+            catch { }
+
+            async Task<System.Collections.Generic.List<T>> SafeFetch<T>(Task<System.Collections.Generic.List<T>> task)
+            {
+                try { return await task; }
+                catch { return new System.Collections.Generic.List<T>(); }
+            }
+
+            var tracksTask = SafeFetch(_apiClient.GetUserTracksAsync(userId, 40));
+            var playlistsTask = SafeFetch(_apiClient.GetUserPlaylistsAsync(userId, 40));
+            var repostsTask = SafeFetch(_apiClient.GetUserRepostsAsync(userId, 30));
+            var likesTask = SafeFetch(_apiClient.GetLikedTracksAsync(userId, 40));
+            var followingsTask = SafeFetch(_apiClient.GetUserFollowingsAsync(userId, 16));
+            var linksTask = SafeFetch(_apiClient.GetUserWebProfilesAsync(userId));
 
             await Task.WhenAll(tracksTask, playlistsTask, repostsTask, likesTask, followingsTask, linksTask);
 
-            UserTracks.Clear();
-            foreach (var t in tracksTask.Result) UserTracks.Add(t);
+            var tracks = await tracksTask;
+            var playlists = await playlistsTask;
+            var reposts = await repostsTask;
+            var likes = await likesTask;
+            var followings = await followingsTask;
+            var links = await linksTask;
 
-            UserPlaylists.Clear();
-            foreach (var p in playlistsTask.Result) UserPlaylists.Add(p);
+            AppDispatcher.Dispatch(() =>
+            {
+                UserTracks.Clear();
+                foreach (var t in tracks) UserTracks.Add(t);
 
-            RepostedTracks.Clear();
-            foreach (var r in repostsTask.Result) RepostedTracks.Add(r);
+                UserPlaylists.Clear();
+                foreach (var p in playlists) UserPlaylists.Add(p);
 
-            LikedTracks.Clear();
-            foreach (var l in likesTask.Result) LikedTracks.Add(l);
-            RefreshSidebarLikes();
+                RepostedTracks.Clear();
+                foreach (var r in reposts) RepostedTracks.Add(r);
 
-            Followings.Clear();
-            foreach (var f in followingsTask.Result) Followings.Add(f);
+                LikedTracks.Clear();
+                foreach (var l in likes) LikedTracks.Add(l);
+                RefreshSidebarLikes();
 
-            WebLinks.Clear();
-            foreach (var w in linksTask.Result) WebLinks.Add(w);
+                Followings.Clear();
+                foreach (var f in followings) Followings.Add(f);
 
-            RebuildRecentAndPopular();
+                WebLinks.Clear();
+                foreach (var w in links) WebLinks.Add(w);
+
+                RebuildRecentAndPopular();
+            });
         }
         catch (Exception ex)
         {

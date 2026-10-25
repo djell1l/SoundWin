@@ -7,7 +7,7 @@
     mc:Ignorable="d">
 
     <ScrollViewer Padding="32,28,32,48">
-        <StackPanel MaxWidth="840" HorizontalAlignment="Left" Spacing="24">
+        <StackPanel HorizontalAlignment="Stretch" Spacing="24">
             <!-- PAGE TITLE -->
             <StackPanel Spacing="6" Margin="0,0,0,8">
                 <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
@@ -15,12 +15,48 @@
                     <TextBlock Text="Paramètres" FontSize="26" FontWeight="Bold" />
                 </StackPanel>
                 <TextBlock
-                    Text="Configurez vos intégrations, Discord Rich Presence et les options de lecture de SoundWin."
+                    Text="Configurez vos intégrations, Discord Rich Presence, la fermeture dans la zone de notification et les mises à jour de SCwin."
                     FontSize="13"
                     Opacity="0.7" />
             </StackPanel>
 
-            <!-- CARD 1: DISCORD RICH PRESENCE -->
+            <!-- CARD 1: GENERAL & SYSTEM TRAY -->
+            <Border
+                Background="#18181E"
+                BorderBrush="#25FFFFFF"
+                BorderThickness="1"
+                CornerRadius="12"
+                Padding="24">
+                <StackPanel Spacing="16">
+                    <Grid ColumnDefinitions="Auto,*,Auto" VerticalAlignment="Center">
+                        <Border
+                            Grid.Column="0"
+                            Width="44"
+                            Height="44"
+                            CornerRadius="22"
+                            Background="#20FFFFFF"
+                            Margin="0,0,16,0">
+                            <FontIcon Glyph="&#xE7F4;" FontSize="20" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="3">
+                            <TextBlock Text="Zone de notification (Systray)" FontSize="16" FontWeight="SemiBold" />
+                            <TextBlock
+                                Text="Comme Spotify ou Diswin : cliquer sur la croix (X) réduit SCwin dans la barre des tâches au lieu de quitter complètement l'application."
+                                FontSize="12"
+                                Opacity="0.65"
+                                TextWrapping="Wrap" />
+                        </StackPanel>
+                        <ToggleSwitch
+                            Grid.Column="2"
+                            IsOn="{x:Bind Vm.MinimizeToTrayOnClose, Mode=TwoWay}"
+                            OnContent="Activé"
+                            OffContent="Désactivé"
+                            Margin="16,0,0,0" />
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <!-- CARD 2: DISCORD RICH PRESENCE -->
             <Border
                 Background="#18181E"
                 BorderBrush="#25FFFFFF"
@@ -138,14 +174,14 @@
                         <StackPanel Spacing="8" Margin="0,8,0,0">
                             <TextBlock Text="Identifiant d'application Discord (Client ID)" FontSize="13" FontWeight="Medium" />
                             <TextBlock
-                                Text="Par défaut, SoundWin utilise son application officielle. Vous pouvez spécifier votre propre Discord Application ID si souhaité."
+                                Text="Par défaut, SCwin utilise son application officielle. Vous pouvez spécifier votre propre Discord Application ID si souhaité."
                                 FontSize="11"
                                 Opacity="0.6" />
                             <Grid ColumnDefinitions="*,Auto" Margin="0,4,0,0">
                                 <TextBox
                                     Grid.Column="0"
                                     Text="{x:Bind Vm.DiscordRpcClientId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                    PlaceholderText="Ex: 1296534887309971556"
+                                    PlaceholderText="Ex: 463097721130188830"
                                     FontFamily="Consolas, Segoe UI"
                                     Height="36" />
                                 <Button
@@ -160,7 +196,7 @@
                 </StackPanel>
             </Border>
 
-            <!-- CARD 2: JAY ECOSYSTEM (DISWIN INTEGRATION) -->
+            <!-- CARD 3: JAY ECOSYSTEM (DISWIN INTEGRATION) -->
             <Border
                 Background="#18181E"
                 BorderBrush="#25FFFFFF"
@@ -199,7 +235,7 @@
                 </Grid>
             </Border>
 
-            <!-- CARD 3: SOUNDCLOUD ACCOUNT -->
+            <!-- CARD 4: SOUNDCLOUD ACCOUNT -->
             <Border
                 Background="#18181E"
                 BorderBrush="#25FFFFFF"
@@ -232,29 +268,126 @@
                 </Grid>
             </Border>
 
-            <!-- CARD 4: ABOUT -->
+            <!-- CARD 5: ABOUT & UPDATES SECTION -->
             <Border
                 Background="#18181E"
                 BorderBrush="#25FFFFFF"
                 BorderThickness="1"
                 CornerRadius="12"
                 Padding="24">
-                <StackPanel Spacing="10">
-                    <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
-                        <Image Source="ms-appx:///Assets/Square44x44Logo.png" Width="28" Height="28" />
-                        <TextBlock Text="SoundWin Edge" FontSize="16" FontWeight="Bold" />
-                        <Border Background="#20FFFFFF" CornerRadius="4" Padding="6,2">
-                            <TextBlock Text="v0.1.0-edge.1" FontSize="10" FontWeight="SemiBold" Opacity="0.8" />
+                <StackPanel Spacing="18">
+                    <!-- App Banner & Current Version -->
+                    <Grid ColumnDefinitions="Auto,*,Auto" VerticalAlignment="Center">
+                        <Border
+                            Grid.Column="0"
+                            Width="44"
+                            Height="44"
+                            CornerRadius="10"
+                            Background="#22FFFFFF"
+                            Margin="0,0,16,0">
+                            <Image Source="ms-appx:///Assets/Square44x44Logo.png" Width="32" Height="32" HorizontalAlignment="Center" VerticalAlignment="Center" />
                         </Border>
-                    </StackPanel>
-                    <TextBlock
-                        Text="Client SoundCloud moderne et ultraléger pour Windows 10 &amp; 11, conçu avec WinUI 3, C# et l'écosystème Jay."
-                        FontSize="12"
-                        Opacity="0.7" />
-                    <TextBlock
-                        Text="Intégration Discord Rich Presence avec support pochette haute résolution et contrôles distants."
-                        FontSize="12"
-                        Opacity="0.7" />
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="3">
+                            <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                                <TextBlock Text="SCwin" FontSize="18" FontWeight="Bold" />
+                                <Border Background="#25FF5500" CornerRadius="4" Padding="6,2">
+                                    <TextBlock Text="{x:Bind Vm.CurrentVersion, Mode=OneWay}" FontSize="11" FontWeight="Bold" Foreground="{StaticResource SoundCloudOrangeBrush}" />
+                                </Border>
+                            </StackPanel>
+                            <TextBlock
+                                Text="Client SoundCloud natif pour Windows 10 &amp; 11 — 100% WinUI 3, ultraléger et sans WebView2."
+                                FontSize="12"
+                                Opacity="0.65" />
+                        </StackPanel>
+
+                        <!-- Action: Open GitHub Releases -->
+                        <Button
+                            Grid.Column="2"
+                            Background="#20FFFFFF"
+                            BorderThickness="0"
+                            Padding="12,6"
+                            CornerRadius="6"
+                            Command="{x:Bind Vm.OpenGitHubReleasesCommand}">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <FontIcon Glyph="&#xE8A7;" FontSize="12" />
+                                <TextBlock Text="Releases GitHub" FontSize="12" />
+                            </StackPanel>
+                        </Button>
+                    </Grid>
+
+                    <MenuFlyoutSeparator />
+
+                    <!-- Update Channel Selector -->
+                    <Grid ColumnDefinitions="*,Auto" VerticalAlignment="Center">
+                        <StackPanel Spacing="2">
+                            <TextBlock Text="Canal de mise à jour" FontSize="14" FontWeight="SemiBold" />
+                            <TextBlock Text="Choisissez entre les mises à jour Edge (dernières fonctionnalités) ou Stable (versions vérifiées)." FontSize="12" Opacity="0.65" />
+                        </StackPanel>
+                        <ComboBox
+                            Grid.Column="1"
+                            SelectedValue="{x:Bind Vm.UpdateChannel, Mode=TwoWay}"
+                            SelectedValuePath="Tag"
+                            Width="180">
+                            <ComboBoxItem Content="Edge (Rapide)" Tag="Edge" />
+                            <ComboBoxItem Content="Stable (Recommandé)" Tag="Stable" />
+                        </ComboBox>
+                    </Grid>
+
+                    <!-- Auto Check on Startup Toggle -->
+                    <Grid ColumnDefinitions="*,Auto" VerticalAlignment="Center">
+                        <StackPanel Spacing="2">
+                            <TextBlock Text="Rechercher les mises à jour au démarrage" FontSize="14" FontWeight="SemiBold" />
+                            <TextBlock Text="Vérifie silencieusement au lancement si une nouvelle version est disponible et vous propose de la télécharger." FontSize="12" Opacity="0.65" />
+                        </StackPanel>
+                        <ToggleSwitch
+                            Grid.Column="1"
+                            IsOn="{x:Bind Vm.AutoCheckUpdatesOnStartup, Mode=TwoWay}"
+                            OnContent="Activé"
+                            OffContent="Désactivé" />
+                    </Grid>
+
+                    <!-- Check for Updates Action & Status Bar -->
+                    <Grid ColumnDefinitions="*,Auto" VerticalAlignment="Center" Margin="0,4,0,0">
+                        <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                            <Button
+                                Background="{StaticResource SoundCloudOrangeBrush}"
+                                Foreground="White"
+                                BorderThickness="0"
+                                CornerRadius="6"
+                                Padding="16,8"
+                                Command="{x:Bind Vm.CheckForUpdatesCommand}"
+                                IsEnabled="{x:Bind Vm.IsCheckingForUpdates, Mode=OneWay, Converter={StaticResource InvertedBooleanVisibilityConverter}, FallbackValue=True}">
+                                <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                    <FontIcon Glyph="&#xE895;" FontSize="13" />
+                                    <TextBlock Text="Vérifier les mises à jour" FontSize="12" FontWeight="SemiBold" />
+                                </StackPanel>
+                            </Button>
+                            <ProgressRing IsActive="{x:Bind Vm.IsCheckingForUpdates, Mode=OneWay}" Width="20" Height="20" />
+                        </StackPanel>
+
+                        <!-- Download Update Button (visible when new release is found) -->
+                        <Button
+                            Grid.Column="1"
+                            Background="#10B981"
+                            Foreground="White"
+                            BorderThickness="0"
+                            CornerRadius="6"
+                            Padding="14,8"
+                            Visibility="{x:Bind Vm.HasUpdateAvailable, Mode=OneWay, Converter={StaticResource BooleanVisibilityConverter}}"
+                            Command="{x:Bind Vm.OpenLatestUpdateUrlCommand}">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <FontIcon Glyph="&#xE896;" FontSize="13" />
+                                <TextBlock Text="Télécharger la mise à jour" FontSize="12" FontWeight="Bold" />
+                            </StackPanel>
+                        </Button>
+                    </Grid>
+
+                    <!-- Update Status InfoBar -->
+                    <InfoBar
+                        IsOpen="{x:Bind Vm.IsUpdateResultOpen, Mode=OneWay}"
+                        Message="{x:Bind Vm.UpdateCheckResult, Mode=OneWay}"
+                        Severity="{x:Bind Vm.HasUpdateAvailable, Mode=OneWay, Converter={StaticResource BooleanVisibilityConverter}, FallbackValue='Success'}"
+                        IsClosable="True" />
                 </StackPanel>
             </Border>
         </StackPanel>
