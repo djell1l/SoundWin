@@ -35,7 +35,14 @@ public sealed class SettingsService
             if (File.Exists(path))
             {
                 var json = File.ReadAllText(path);
-                return JsonSerializer.Deserialize<SoundWinSettings>(json, JsonOptions) ?? new SoundWinSettings();
+                var settings = JsonSerializer.Deserialize<SoundWinSettings>(json, JsonOptions) ?? new SoundWinSettings();
+                
+                // Migrate obsolete / rejected client IDs to default verified ID
+                if (string.IsNullOrWhiteSpace(settings.DiscordRpcClientId) || settings.DiscordRpcClientId == "1296534887309971556")
+                {
+                    settings.DiscordRpcClientId = SoundWinSettings.DefaultDiscordClientId;
+                }
+                return settings;
             }
         }
         catch

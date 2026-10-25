@@ -4,7 +4,7 @@ namespace SoundWin.Core.Models;
 
 public sealed class SoundWinSettings
 {
-    public const string DefaultDiscordClientId = "1296534887309971556";
+    public const string DefaultDiscordClientId = "463097721130188830";
 
     /// <summary>
     /// Active ou désactive globalement le Discord Rich Presence (RPC).

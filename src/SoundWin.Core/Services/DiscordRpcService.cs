@@ -20,7 +20,7 @@ public class DiscordRpcService : IDisposable
     private readonly SemaphoreSlim _sendLock = new(1, 1);
 
     private bool _isConnected;
-    private string _statusMessage = "Non initialisé";
+    private string _statusMessage = "Non initialise";
 
     // Cache of the last reported state for replay on reconnect or setting toggle
     private Track? _lastTrack;
@@ -44,7 +44,7 @@ public class DiscordRpcService : IDisposable
     {
         if (!IsEnabled)
         {
-            _statusMessage = "Désactivé dans les paramètres";
+            _statusMessage = "Desactive dans les parametres";
             ConnectionStatusChanged?.Invoke(false);
         }
 
@@ -59,7 +59,7 @@ public class DiscordRpcService : IDisposable
 
                 try
                 {
-                    await Task.Delay(4000, _cts.Token).ConfigureAwait(false);
+                    await Task.Delay(3000, _cts.Token).ConfigureAwait(false);
                 }
                 catch (OperationCanceledException)
                 {
@@ -75,7 +75,7 @@ public class DiscordRpcService : IDisposable
     {
         if (!IsEnabled)
         {
-            _statusMessage = "Désactivé dans les paramètres";
+            _statusMessage = "Desactive dans les parametres";
             _ = ClearPresenceAndDisconnectAsync();
         }
         else if (!_isConnected)
@@ -84,7 +84,6 @@ public class DiscordRpcService : IDisposable
         }
         else
         {
-            // Settings changed (e.g., cover art or buttons toggled): re-push presence
             if (_lastTrack != null)
             {
                 _ = UpdatePresenceAsync(_lastTrack, _lastIsPlaying, _lastPosition, _lastDuration);
@@ -112,42 +111,109 @@ public class DiscordRpcService : IDisposable
 
         DisconnectInternal();
 
-        string clientId = !string.IsNullOrWhiteSpace(_settings.Current.DiscordRpcClientId)
+        string primaryClientId = !string.IsNullOrWhiteSpace(_settings.Current.DiscordRpcClientId)
             ? _settings.Current.DiscordRpcClientId.Trim()
             : SoundWinSettings.DefaultDiscordClientId;
 
+        // Try configured client ID first, then fallback to default verified ID if different
+        var clientIdsToTry = new[] { primaryClientId };
+        if (primaryClientId != SoundWinSettings.DefaultDiscordClientId)
+        {
+            clientIdsToTry = new[] { primaryClientId, SoundWinSettings.DefaultDiscordClientId };
+        }
+
         for (int i = 0; i < 10; i++)
         {
-            NamedPipeClientStream? candidatePipe = null;
-            try
+            var pipeName = $"discord-ipc-{i}";
+
+            foreach (var cid in clientIdsToTry)
             {
-                var pipeName = $"discord-ipc-{i}";
-                candidatePipe = new NamedPipeClientStream(".", pipeName, PipeDirection.InOut, PipeOptions.Asynchronous);
-                
-                using var timeoutCts = new CancellationTokenSource(600);
-                using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(_cts.Token, timeoutCts.Token);
-                await candidatePipe.ConnectAsync(linkedCts.Token).ConfigureAwait(false);
-
-                _pipe = candidatePipe;
-                _statusMessage = $"Connecté au pipe {pipeName}";
-                Debug.WriteLine($"[DiscordRpcService] Connected to pipe: {pipeName}");
-
-                // Send Handshake frame (opcode 0)
-                var handshakePayload = JsonSerializer.Serialize(new
+                NamedPipeClientStream? candidatePipe = null;
+                try
                 {
-                    v = 1,
-                    client_id = clientId
-                });
+                    candidatePipe = new NamedPipeClientStream(".", pipeName, PipeDirection.InOut, PipeOptions.Asynchronous);
 
-                await WriteFrameInternalAsync(candidatePipe, 0, handshakePayload).ConfigureAwait(false);
+                    using var timeoutCts = new CancellationTokenSource(800);
+                    using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(_cts.Token, timeoutCts.Token);
+                    await candidatePipe.ConnectAsync(linkedCts.Token).ConfigureAwait(false);
 
-                // Start background reader for this pipe
-                _ = Task.Run(() => ReadLoopAsync(candidatePipe, _cts.Token), _cts.Token);
-                return;
-            }
-            catch
-            {
-                candidatePipe?.Dispose();
+                    // Send Handshake frame (opcode 0)
+                    var handshakePayload = JsonSerializer.Serialize(new
+                    {
+                        v = 1,
+                        client_id = cid
+                    });
+
+                    await WriteFrameInternalAsync(candidatePipe, 0, handshakePayload).ConfigureAwait(false);
+
+                    // Read first frame to ensure handshake succeeded (READY vs ERROR / CLOSE)
+                    byte[] header = new byte[8];
+                    using var handshakeTimeoutCts = new CancellationTokenSource(1200);
+                    using var readLinkedCts = CancellationTokenSource.CreateLinkedTokenSource(_cts.Token, handshakeTimeoutCts.Token);
+
+                    int headerRead = await ReadExactAsync(candidatePipe, header, 8, readLinkedCts.Token).ConfigureAwait(false);
+                    if (headerRead < 8)
+                    {
+                        candidatePipe.Dispose();
+                        continue;
+                    }
+
+                    int op = BitConverter.ToInt32(header, 0);
+                    int len = BitConverter.ToInt32(header, 4);
+
+                    if (len < 0 || len > 2 * 1024 * 1024)
+                    {
+                        candidatePipe.Dispose();
+                        continue;
+                    }
+
+                    byte[] body = new byte[len];
+                    int bodyRead = await ReadExactAsync(candidatePipe, body, len, readLinkedCts.Token).ConfigureAwait(false);
+                    if (bodyRead < len)
+                    {
+                        candidatePipe.Dispose();
+                        continue;
+                    }
+
+                    string json = Encoding.UTF8.GetString(body);
+
+                    if (op == 2) // CLOSE (e.g. Invalid Client ID)
+                    {
+                        Debug.WriteLine($"[DiscordRpcService] Handshake rejected by Discord on {pipeName} with client_id={cid}: {json}");
+                        candidatePipe.Dispose();
+                        continue;
+                    }
+
+                    if (op == 1) // FRAME / DISPATCH
+                    {
+                        using var doc = JsonDocument.Parse(json);
+                        var root = doc.RootElement;
+                        if (root.TryGetProperty("evt", out var evtEl) && evtEl.GetString() == "READY")
+                        {
+                            _pipe = candidatePipe;
+                            _isConnected = true;
+                            _statusMessage = $"Connecte a Discord ({pipeName})";
+                            Debug.WriteLine($"[DiscordRpcService] Discord RPC handshake READY on {pipeName} with client_id={cid}!");
+                            ConnectionStatusChanged?.Invoke(true);
+
+                            // Start background reader
+                            _ = Task.Run(() => ReadLoopAsync(candidatePipe, _cts.Token), _cts.Token);
+
+                            // Replay current playing track immediately
+                            if (_lastTrack != null)
+                            {
+                                _ = UpdatePresenceAsync(_lastTrack, _lastIsPlaying, _lastPosition, _lastDuration);
+                            }
+                            return;
+                        }
+                    }
+
+                    candidatePipe.Dispose();
+                }
+                catch
+                {
+                    candidatePipe?.Dispose();
+                }
             }
         }
 
@@ -185,11 +251,10 @@ public class DiscordRpcService : IDisposable
                     if (root.TryGetProperty("evt", out var evtEl) && evtEl.GetString() == "READY")
                     {
                         _isConnected = true;
-                        _statusMessage = "Connecté à Discord";
-                        Debug.WriteLine("[DiscordRpcService] Discord RPC handshake READY received!");
+                        _statusMessage = "Connecte a Discord";
+                        Debug.WriteLine("[DiscordRpcService] Discord RPC READY received.");
                         ConnectionStatusChanged?.Invoke(true);
 
-                        // If a track was already playing before connection, push it right away!
                         if (_lastTrack != null)
                         {
                             _ = UpdatePresenceAsync(_lastTrack, _lastIsPlaying, _lastPosition, _lastDuration);
@@ -208,7 +273,6 @@ public class DiscordRpcService : IDisposable
                 }
                 else if (op == 3) // PING
                 {
-                    // Respond with PONG (opcode 4)
                     await WriteFrameInternalAsync(pipe, 4, json).ConfigureAwait(false);
                 }
             }
@@ -252,7 +316,7 @@ public class DiscordRpcService : IDisposable
 
         if (prevConnected)
         {
-            _statusMessage = IsEnabled ? "En attente de Discord..." : "Désactivé";
+            _statusMessage = IsEnabled ? "En attente de Discord..." : "Desactive";
             ConnectionStatusChanged?.Invoke(false);
         }
     }
@@ -321,7 +385,7 @@ public class DiscordRpcService : IDisposable
                     buttons = _settings.Current.DiscordRpcShowButtons && !string.IsNullOrEmpty(track.PermalinkUrl) && track.PermalinkUrl.StartsWith("http", StringComparison.OrdinalIgnoreCase)
                         ? new[]
                         {
-                            new { label = "Écouter sur SoundCloud", url = track.PermalinkUrl }
+                            new { label = "Ecouter sur SoundCloud", url = track.PermalinkUrl }
                         }
                         : null
                 };
@@ -345,7 +409,7 @@ public class DiscordRpcService : IDisposable
                 {
                     type = 2,
                     details = Truncate(track.Title, 120),
-                    state = Truncate($"{track.Artist} • En pause", 120),
+                    state = Truncate($"{track.Artist} - En pause", 120),
                     assets = new
                     {
                         large_image = largeImageUrl,
@@ -356,7 +420,7 @@ public class DiscordRpcService : IDisposable
                     buttons = _settings.Current.DiscordRpcShowButtons && !string.IsNullOrEmpty(track.PermalinkUrl) && track.PermalinkUrl.StartsWith("http", StringComparison.OrdinalIgnoreCase)
                         ? new[]
                         {
-                            new { label = "Écouter sur SoundCloud", url = track.PermalinkUrl }
+                            new { label = "Ecouter sur SoundCloud", url = track.PermalinkUrl }
                         }
                         : null
                 };
