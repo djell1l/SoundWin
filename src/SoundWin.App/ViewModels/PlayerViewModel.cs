@@ -5,6 +5,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using SoundWin.Core.Models;
 using SoundWin.Core.Services;
+using SoundWin.Core.Utils;
 
 namespace SoundWin.App.ViewModels;
 
@@ -67,39 +68,48 @@ public partial class PlayerViewModel : ObservableObject
 
         _player.TrackChanged += (s, track) =>
         {
-            CurrentTrack = track;
-            Duration = track?.Duration ?? TimeSpan.Zero;
-            _ = _rpc.UpdatePresenceAsync(CurrentTrack, IsPlaying, Position, Duration);
+            AppDispatcher.Dispatch(() =>
+            {
+                CurrentTrack = track;
+                Duration = track?.Duration ?? TimeSpan.Zero;
+                _ = _rpc.UpdatePresenceAsync(CurrentTrack, IsPlaying, Position, Duration);
+            });
         };
 
         _player.PlaybackStateChanged += (s, playing) =>
         {
-            IsPlaying = playing;
-            _ = _rpc.UpdatePresenceAsync(CurrentTrack, IsPlaying, Position, Duration);
+            AppDispatcher.Dispatch(() =>
+            {
+                IsPlaying = playing;
+                _ = _rpc.UpdatePresenceAsync(CurrentTrack, IsPlaying, Position, Duration);
+            });
         };
 
         _player.PropertyChanged += (s, e) =>
         {
-            switch (e.PropertyName)
+            AppDispatcher.Dispatch(() =>
             {
-                case nameof(AudioPlayerService.Position):
-                    Position = _player.Position;
-                    OnPropertyChanged(nameof(FormattedPosition));
-                    break;
-                case nameof(AudioPlayerService.Duration):
-                    Duration = _player.Duration;
-                    OnPropertyChanged(nameof(FormattedDuration));
-                    break;
-                case nameof(AudioPlayerService.Progress):
-                    Progress = _player.Progress;
-                    break;
-                case nameof(AudioPlayerService.IsBuffering):
-                    IsBuffering = _player.IsBuffering;
-                    break;
-                case nameof(AudioPlayerService.CurrentWaveform):
-                    CurrentWaveform = _player.CurrentWaveform;
-                    break;
-            }
+                switch (e.PropertyName)
+                {
+                    case nameof(AudioPlayerService.Position):
+                        Position = _player.Position;
+                        OnPropertyChanged(nameof(FormattedPosition));
+                        break;
+                    case nameof(AudioPlayerService.Duration):
+                        Duration = _player.Duration;
+                        OnPropertyChanged(nameof(FormattedDuration));
+                        break;
+                    case nameof(AudioPlayerService.Progress):
+                        Progress = _player.Progress;
+                        break;
+                    case nameof(AudioPlayerService.IsBuffering):
+                        IsBuffering = _player.IsBuffering;
+                        break;
+                    case nameof(AudioPlayerService.CurrentWaveform):
+                        CurrentWaveform = _player.CurrentWaveform;
+                        break;
+                }
+            });
         };
     }
 

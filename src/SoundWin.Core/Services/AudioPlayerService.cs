@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using SoundWin.Core.Models;
+using SoundWin.Core.Utils;
 using Windows.Media;
 using Windows.Media.Core;
 using Windows.Media.Playback;
@@ -97,54 +98,60 @@ public partial class AudioPlayerService : ObservableObject
     {
         try
         {
-            if (newQueue != null && newQueue != Queue)
+            AppDispatcher.Dispatch(() =>
             {
-                Queue.Clear();
-                foreach (var t in newQueue) Queue.Add(t);
-                CurrentIndex = queueIndex >= 0 ? queueIndex : Queue.IndexOf(track);
-            }
-            else if (track != null)
-            {
-                var idx = Queue.IndexOf(track);
-                if (idx >= 0)
+                if (newQueue != null && newQueue != Queue)
                 {
-                    CurrentIndex = idx;
+                    Queue.Clear();
+                    foreach (var t in newQueue) Queue.Add(t);
+                    CurrentIndex = queueIndex >= 0 ? queueIndex : Queue.IndexOf(track);
                 }
-                else
+                else if (track != null)
                 {
-                    Queue.Add(track);
-                    CurrentIndex = Queue.Count - 1;
+                    var idx = Queue.IndexOf(track);
+                    if (idx >= 0)
+                    {
+                        CurrentIndex = idx;
+                    }
+                    else
+                    {
+                        Queue.Add(track);
+                        CurrentIndex = Queue.Count - 1;
+                    }
                 }
-            }
 
-            if (CurrentTrack != null)
-            {
-                CurrentTrack.IsPlaying = false;
-            }
+                if (CurrentTrack != null)
+                {
+                    CurrentTrack.IsPlaying = false;
+                }
 
-            CurrentTrack = track;
-            if (CurrentTrack != null)
-            {
-                CurrentTrack.IsPlaying = true;
-            }
+                CurrentTrack = track;
+                if (CurrentTrack != null)
+                {
+                    CurrentTrack.IsPlaying = true;
+                }
 
-            IsBuffering = true;
-            Position = TimeSpan.Zero;
-            Progress = 0;
-            Duration = track?.Duration ?? TimeSpan.Zero;
+                IsBuffering = true;
+                Position = TimeSpan.Zero;
+                Progress = 0;
+                Duration = track?.Duration ?? TimeSpan.Zero;
 
-            TrackChanged?.Invoke(this, CurrentTrack);
-            UpdateSmtcDisplay(track);
+                TrackChanged?.Invoke(this, CurrentTrack);
+                UpdateSmtcDisplay(track);
+            });
 
             // Fetch stream CDN URL
             var streamUrl = await _apiClient.ResolveStreamUrlAsync(track!);
             Debug.WriteLine($"[AudioPlayerService] Playing stream URL: {streamUrl}");
 
-            var source = MediaSource.CreateFromUri(new Uri(streamUrl));
-            _player.Source = source;
-            _player.Play();
+            AppDispatcher.Dispatch(() =>
+            {
+                var source = MediaSource.CreateFromUri(new Uri(streamUrl));
+                _player.Source = source;
+                _player.Play();
 
-            _positionTimer.Change(0, 100);
+                _positionTimer.Change(0, 100);
+            });
 
             // Fetch waveform asynchronously
             _ = Task.Run(async () =>
@@ -154,7 +161,10 @@ public partial class AudioPlayerService : ObservableObject
                     var wf = await _apiClient.GetWaveformDataAsync(track?.WaveformUrl);
                     if (wf != null && CurrentTrack?.Id == track?.Id)
                     {
-                        CurrentWaveform = wf;
+                        AppDispatcher.Dispatch(() =>
+                        {
+                            CurrentWaveform = wf;
+                        });
                     }
                 }
                 catch { }
@@ -163,7 +173,10 @@ public partial class AudioPlayerService : ObservableObject
         catch (Exception ex)
         {
             Debug.WriteLine($"[AudioPlayerService] Error playing track: {ex.Message}");
-            IsBuffering = false;
+            AppDispatcher.Dispatch(() =>
+            {
+                IsBuffering = false;
+            });
         }
     }
 
@@ -296,83 +309,98 @@ public partial class AudioPlayerService : ObservableObject
         var pos = session.Position;
         var dur = session.NaturalDuration;
 
-        Position = pos;
-        if (dur > TimeSpan.Zero)
+        AppDispatcher.Dispatch(() =>
         {
-            Duration = dur;
-            Progress = Math.Clamp(pos.TotalSeconds / dur.TotalSeconds, 0, 1);
-        }
+            Position = pos;
+            if (dur > TimeSpan.Zero)
+            {
+                Duration = dur;
+                Progress = Math.Clamp(pos.TotalSeconds / dur.TotalSeconds, 0, 1);
+            }
+        });
     }
 
     private void OnPlaybackStateChanged(MediaPlaybackSession sender, object args)
     {
-        switch (sender.PlaybackState)
+        AppDispatcher.Dispatch(() =>
         {
-            case MediaPlaybackState.Playing:
-                IsPlaying = true;
-                IsBuffering = false;
-                _smtc.PlaybackStatus = MediaPlaybackStatus.Playing;
-                break;
-            case MediaPlaybackState.Paused:
-                IsPlaying = false;
-                IsBuffering = false;
-                _smtc.PlaybackStatus = MediaPlaybackStatus.Paused;
-                break;
-            case MediaPlaybackState.Buffering:
-            case MediaPlaybackState.Opening:
-                IsBuffering = true;
-                break;
-            case MediaPlaybackState.None:
-                IsPlaying = false;
-                IsBuffering = false;
-                _smtc.PlaybackStatus = MediaPlaybackStatus.Stopped;
-                break;
-        }
+            switch (sender.PlaybackState)
+            {
+                case MediaPlaybackState.Playing:
+                    IsPlaying = true;
+                    IsBuffering = false;
+                    _smtc.PlaybackStatus = MediaPlaybackStatus.Playing;
+                    break;
+                case MediaPlaybackState.Paused:
+                    IsPlaying = false;
+                    IsBuffering = false;
+                    _smtc.PlaybackStatus = MediaPlaybackStatus.Paused;
+                    break;
+                case MediaPlaybackState.Buffering:
+                case MediaPlaybackState.Opening:
+                    IsBuffering = true;
+                    break;
+                case MediaPlaybackState.None:
+                    IsPlaying = false;
+                    IsBuffering = false;
+                    _smtc.PlaybackStatus = MediaPlaybackStatus.Stopped;
+                    break;
+            }
 
-        PlaybackStateChanged?.Invoke(this, IsPlaying);
-        UpdateSmtcTimeline();
+            PlaybackStateChanged?.Invoke(this, IsPlaying);
+            UpdateSmtcTimeline();
+        });
     }
 
-    private async void OnMediaEnded(MediaPlayer sender, object args)
+    private void OnMediaEnded(MediaPlayer sender, object args)
     {
-        if (RepeatMode == RepeatMode.One && CurrentTrack != null)
+        AppDispatcher.Dispatch(async () =>
         {
-            await PlayTrackAsync(CurrentTrack);
-        }
-        else
-        {
-            await NextAsync();
-        }
+            if (RepeatMode == RepeatMode.One && CurrentTrack != null)
+            {
+                await PlayTrackAsync(CurrentTrack);
+            }
+            else
+            {
+                await NextAsync();
+            }
+        });
     }
 
     private void OnMediaFailed(MediaPlayer sender, MediaPlayerFailedEventArgs args)
     {
         Debug.WriteLine($"[AudioPlayerService] Media Failed: {args.Error} - {args.ErrorMessage}");
-        IsBuffering = false;
-        IsPlaying = false;
+        AppDispatcher.Dispatch(() =>
+        {
+            IsBuffering = false;
+            IsPlaying = false;
+        });
     }
 
-    private async void OnSmtcButtonPressed(SystemMediaTransportControls sender, SystemMediaTransportControlsButtonPressedEventArgs args)
+    private void OnSmtcButtonPressed(SystemMediaTransportControls sender, SystemMediaTransportControlsButtonPressedEventArgs args)
     {
-        switch (args.Button)
+        AppDispatcher.Dispatch(async () =>
         {
-            case SystemMediaTransportControlsButton.Play:
-                Play();
-                break;
-            case SystemMediaTransportControlsButton.Pause:
-                Pause();
-                break;
-            case SystemMediaTransportControlsButton.Next:
-                await NextAsync();
-                break;
-            case SystemMediaTransportControlsButton.Previous:
-                await PreviousAsync();
-                break;
-            case SystemMediaTransportControlsButton.Stop:
-                Pause();
-                Seek(TimeSpan.Zero);
-                break;
-        }
+            switch (args.Button)
+            {
+                case SystemMediaTransportControlsButton.Play:
+                    Play();
+                    break;
+                case SystemMediaTransportControlsButton.Pause:
+                    Pause();
+                    break;
+                case SystemMediaTransportControlsButton.Next:
+                    await NextAsync();
+                    break;
+                case SystemMediaTransportControlsButton.Previous:
+                    await PreviousAsync();
+                    break;
+                case SystemMediaTransportControlsButton.Stop:
+                    Pause();
+                    Seek(TimeSpan.Zero);
+                    break;
+            }
+        });
     }
 
     private void UpdateSmtcDisplay(Track? track)

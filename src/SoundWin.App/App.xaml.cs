@@ -30,6 +30,16 @@ public partial class App : Application
             Trace(log);
         };
 
+        var dq = Microsoft.UI.Dispatching.DispatcherQueue.GetForCurrentThread();
+        if (dq != null)
+        {
+            SoundWin.Core.Utils.AppDispatcher.RunOnUiThread = action =>
+            {
+                if (dq.HasThreadAccess) action();
+                else dq.TryEnqueue(() => action());
+            };
+        }
+
         var services = new ServiceCollection();
         ConfigureServices(services);
         Services = services.BuildServiceProvider();
@@ -83,6 +93,17 @@ public partial class App : Application
             Trace("Creating MainWindow...");
             var window = new MainWindow();
             MainWindow = window;
+
+            var windowQueue = window.DispatcherQueue ?? Microsoft.UI.Dispatching.DispatcherQueue.GetForCurrentThread();
+            if (windowQueue != null)
+            {
+                SoundWin.Core.Utils.AppDispatcher.RunOnUiThread = action =>
+                {
+                    if (windowQueue.HasThreadAccess) action();
+                    else windowQueue.TryEnqueue(() => action());
+                };
+            }
+
             Trace("Activating MainWindow...");
             window.Activate();
             Trace("MainWindow Activated!");

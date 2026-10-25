@@ -1,53 +1,108 @@
-# 🎵 SoundWin — Client SoundCloud Natif WinUI 3 & C# (.NET 8)
+# SoundWin
 
-> **Le premier client SoundCloud de bureau 100% natif Windows 11 / WinUI 3 (Windows App SDK), sans aucun wrapper web (0% Electron, 0% Chromium).**  
-> Conçu selon la même philosophie de haute performance, de fluidité et d'intégration Windows que **Diswin** et **Files App**.
+Running an entire Chromium browser in the background just to stream a few audio tracks on Windows is an insult to your hardware. If Apple gets to flex its sleek Swift and SwiftUI native ecosystem, why on earth shouldn't Windows get the exact same first-class treatment? Respect your ecosystem.
 
----
-
-## 🌟 Points Forts & Architecture
-
-- **Rendu Visuel Windows 11 Fluent** :
-  - Arrière-plan **Mica Alt** translucide avec intégration moderne des coins arrondis (squircles).
-  - Barre de titre personnalisée avec champ de recherche rapide intégré et avatar utilisateur.
-  - Barre de lecture persistante en bas avec effet **Acrylic**, slider de volume et accès rapide à la file d'attente (*Queue*).
-- **Véritable Waveform SoundCloud Interactive** :
-  - Téléchargement et analyse des 1800 amplitudes sonores fournies par l'API SoundCloud (`.json`).
-  - Rendu vectoriel dynamique en temps réel avec coloration orange SoundCloud et recherche fluide (*scrubbing* au clic/glisser).
-- **Moteur Audio 100% Natif** :
-  - `Windows.Media.Playback.MediaPlayer` pour une lecture matérielle accélérée HLS (AAC 160k) et Progressive MP3.
-  - Support natif des **SMTC** (*System Media Transport Controls*) : touches multimédia du clavier, widget son de Windows 11, commandes sur l'écran de verrouillage avec jaquette HD.
-- **Discord Rich Presence (RPC)** :
-  - Tube IPC direct (`\\.\pipe\discord-ipc-0`) diffusant le morceau en direct avec titre, artiste, pochette et défilement temporel.
-- **Accès Immédiat & Authentification Sûre** :
-  - **Mode Invité** : Extraction automatique du `client_id` public de SoundCloud, zéro configuration requise.
-  - **Connexion SoundCloud** : Fenêtre WebView2 éphémère pour la capture unique du cookie `oauth_token`, stocké de façon chiffrée dans le `PasswordVault` de Windows. Zéro navigateur en tâche de fond par la suite !
+SoundWin is the world's first 100% native SoundCloud client engineered from scratch in **C# (.NET 8)** and **WinUI 3**. No Electron. No CEF. No disguised web browser quietly devouring half a gigabyte of your RAM just to play an MP3. Either way, you're welcome.
 
 ---
 
-## 🚀 Compilation & Lancement
+## Highlights
 
+- **Pure WinUI 3 & Fluent Design**: Real Mica Alt backdrop, dark and light theme synchronization, squircle geometry, integrated title bar search, and acrylic bottom player bar inspired by Files and Diswin. No fake web CSS tricks.
+- **Interactive Vector Waveform**: Real SoundCloud waveform scrubbing powered by the official 1,800-amplitude JSON telemetry. Smooth hardware-rendered bars with responsive dragging, pointer hover tracking, and dynamic progress fill.
+- **Hardware-Accelerated Audio**: Windows Media Foundation and `Windows.Media.Playback.MediaPlayer` handling Progressive MP3 and HLS streams natively with sub-millisecond seek times and zero background bloat.
+- **Windows 11 Integration & SMTC**: Full System Media Transport Controls integration. Control playback from your keyboard media keys, the Windows 11 Action Center sound widget, or your lock screen with high-resolution album artwork.
+- **Discord Rich Presence (RPC)**: Zero-dependency direct named-pipe IPC client (`\\.\pipe\discord-ipc-0`) broadcasting your current track, artist, album art, and live progress timestamps straight to your Discord profile.
+- **Frictionless Authentication**: Guest mode with instant public `client_id` resolution (listen immediately without an account), plus a one-time ephemeral login window capturing your `oauth_token` securely into Windows `PasswordVault`. Once logged in, your likes, library, and stream are synced natively forever.
+- **Instant Launch & Native Footprint**: Launches immediately, sips negligible RAM, and leaves your CPU and battery in peace.
+
+---
+
+## Architecture
+
+```
+SoundWin.sln
+├── src/
+│   ├── SoundWin.Core/          Standalone .NET class library (SoundCloud v2 API, AudioPlayer, SMTC, RPC, Auth)
+│   ├── SoundWin.App/           WinUI 3 Modern Windows Application (MVVM, Mica, Waveform, Controls)
+│   └── SoundWin.Cli/           Diagnostic CLI runner for API, stream resolution, and audio testing
+```
+
+---
+
+## Installation & Distribution
+
+### 1. Local Native Install (`install_local.ps1`)
+To install or update SoundWin natively on your machine:
 ```powershell
-# Compiler et lancer en mode Debug
+.\install_local.ps1
+```
+This compiles a self-contained Release build, registers SoundWin into `C:\Users\%USERNAME%\AppData\Local\Programs\SoundWin`, creates Start Menu and Desktop shortcuts, and sets up native Windows uninstall registration.
+
+### 2. Standalone Release Archive (`package_release.ps1`)
+To generate a portable zip package for distribution:
+```powershell
+.\package_release.ps1
+```
+
+---
+
+## Building from Source
+
+### Prerequisites
+- Windows 10 (version 1809+) or Windows 11
+- .NET 8 SDK
+- Visual Studio 2022 (v17.10+) with **.NET Desktop Development** and **Windows App SDK** workloads
+
+### Build & Run
+```powershell
+# Clone the repository
+git clone https://github.com/djell1l/SoundWin.git
+cd SoundWin
+
+# Switch to the active development branch
+git checkout edge
+
+# Compile and launch in Debug
 .\build.ps1
 
-# Compiler en mode Release
+# Compile and launch in Release
 .\build.ps1 -Configuration Release
-
-# Compiler sans lancer
-.\build.ps1 -NoRun
 ```
 
 ---
 
-## 📁 Structure du Projet
+## Contributors & Credits
 
-```
-SoundWin/
-├── SoundWin.sln
-├── build.ps1
-├── src/
-│   ├── SoundWin.Core/          # Moteur C# autonome (API SoundCloud v2, Player, SMTC, RPC, Auth)
-│   ├── SoundWin.App/           # Application WinUI 3 (Windows App SDK, Vues, Contrôles, Waveform)
-│   └── SoundWin.Cli/           # Outil CLI pour tests rapides d'API et streaming
-```
+AI is the future — why whisper about it on GitHub like it's a dirty secret? While everyone else pretends they hand-carved 50,000 lines of boilerplate by candlelight, we own it: pairing human ambition with cutting-edge AI pair programming to build what multi-billion-dollar companies were too lazy to ship.
+
+<p align="left">
+  <a href="https://github.com/djell1l">
+    <img src="https://github.com/djell1l.png" width="60" height="60" style="border-radius: 50%;" alt="djell1l" />
+  </a>
+</p>
+
+- **[djell1l](https://github.com/djell1l)** — Lead developer & creator
+- **[Claude](https://github.com/anthropics)** ([@anthropics](https://github.com/anthropics)) & **[Gemini](https://github.com/google-gemini)** ([@google-gemini](https://github.com/google-gemini)) via **[Antigravity](https://github.com/google-deepmind)** ([@google-deepmind](https://github.com/google-deepmind)) — AI pair programming collaborators and architecture co-design
+- **[SoundCloudExplode](https://github.com/Tyrrrz/SoundCloudExplode)** by Oleksii Holub (Tyrrrz) & Jerro — Lightweight C# SoundCloud API client and stream parser
+- **[sctui](https://github.com/Illogicalll/sctui)** by Illogicalll — Outstanding terminal SoundCloud client inspiration and reverse-engineering insights
+- **[Soundnode](https://github.com/Soundnode/soundnode-app)** — The early pioneer desktop SoundCloud client concept
+- **[soundcloud.py](https://github.com/7x11x13/soundcloud.py)** by 7x11x13 — Python library referencing internal SoundCloud v2 endpoints
+- **[Diswin](https://github.com/djell1l/Diswin)** — Sibling native Windows 11 client establishing this ecosystem standard
+- **[Files](https://github.com/files-community/Files)** — UI/UX inspiration for WinUI 3 modern controls and Fluent design patterns
+
+---
+
+## License
+
+This project is licensed under the **GNU General Public License v3.0 (GPL-3.0)**. See the [LICENSE](LICENSE) file for complete details.
+
+Under this strong copyleft license:
+- Any fork, derivative work, or redistribution **must remain completely free and open-source**.
+- It is strictly prohibited to take this code, make it proprietary, or re-publish it in closed-source format without giving full attribution and releasing the modified source code under the same GPL-3.0 license.
+
+---
+
+## Disclaimer
+
+SoundWin is an unofficial third-party client built for experimental and educational purposes. SoundCloud is a registered trademark of SoundCloud Global Limited & Co. KG. This project is not affiliated with, endorsed by, or associated with SoundCloud. Use at your own discretion.

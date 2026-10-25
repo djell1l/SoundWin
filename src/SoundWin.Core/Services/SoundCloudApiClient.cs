@@ -103,10 +103,10 @@ public class SoundCloudApiClient
         return null;
     }
 
-    private HttpRequestMessage CreateRequest(HttpMethod method, string url)
+    private HttpRequestMessage CreateRequest(HttpMethod method, string url, bool attachAuth = true)
     {
         var request = new HttpRequestMessage(method, url);
-        if (!string.IsNullOrEmpty(_oauthToken))
+        if (attachAuth && !string.IsNullOrEmpty(_oauthToken))
         {
             request.Headers.Add("Authorization", $"OAuth {_oauthToken}");
         }
@@ -336,33 +336,53 @@ public class SoundCloudApiClient
             throw new InvalidOperationException($"No transcodings found for track {track.Id} ({track.Title}).");
         }
 
-        // Priority 1: HLS AAC 160k (highest quality on free/standard SoundCloud)
-        // Priority 2: Progressive MP3 128k (standard seeking)
-        // Priority 3: HLS MP3 or any first available
-        var transcoding = track.Transcodings.FirstOrDefault(t => t.Protocol == "hls" && t.MimeType.Contains("mp4a.40.2"))
-                       ?? track.Transcodings.FirstOrDefault(t => t.Protocol == "progressive")
-                       ?? track.Transcodings.FirstOrDefault(t => t.Protocol == "hls")
-                       ?? track.Transcodings[0];
+        // Transcoding priority order:
+        // 1. Progressive MP3 128k (standard seeking, robust)
+        // 2. HLS AAC 160k (standard SoundCloud stream)
+        // 3. HLS MP3 / opus / any first available
+        var ordered = track.Transcodings
+            .OrderByDescending(t => t.Protocol == "progressive" ? 3 : (t.Protocol == "hls" ? 2 : 1))
+            .ThenByDescending(t => t.MimeType.Contains("mp4a") ? 2 : (t.MimeType.Contains("mpeg") ? 1 : 0))
+            .ToList();
 
-        var resolveUrl = $"{transcoding.Url}?client_id={_clientId}";
-        if (!string.IsNullOrEmpty(track.TrackAuthorization))
+        Exception? lastEx = null;
+        foreach (var transcoding in ordered)
         {
-            resolveUrl += $"&track_authorization={track.TrackAuthorization}";
+            try
+            {
+                var resolveUrl = $"{transcoding.Url}?client_id={_clientId}";
+                if (!string.IsNullOrEmpty(track.TrackAuthorization))
+                {
+                    resolveUrl += $"&track_authorization={track.TrackAuthorization}";
+                }
+
+                // CRITICAL: SoundCloud media CDN endpoints do NOT accept OAuth headers!
+                using var request = CreateRequest(HttpMethod.Get, resolveUrl, attachAuth: false);
+                using var response = await _http.SendAsync(request, ct);
+                if (!response.IsSuccessStatusCode)
+                {
+                    continue;
+                }
+
+                var json = await response.Content.ReadAsStringAsync(ct);
+                using var doc = JsonDocument.Parse(json);
+
+                if (doc.RootElement.TryGetProperty("url", out var cdnUrlProp))
+                {
+                    var cdnUrl = cdnUrlProp.GetString();
+                    if (!string.IsNullOrEmpty(cdnUrl))
+                    {
+                        return cdnUrl;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                lastEx = ex;
+            }
         }
 
-        using var request = CreateRequest(HttpMethod.Get, resolveUrl);
-        using var response = await _http.SendAsync(request, ct);
-        response.EnsureSuccessStatusCode();
-
-        var json = await response.Content.ReadAsStringAsync(ct);
-        using var doc = JsonDocument.Parse(json);
-
-        if (doc.RootElement.TryGetProperty("url", out var cdnUrlProp))
-        {
-            return cdnUrlProp.GetString() ?? throw new InvalidOperationException("Empty CDN URL received.");
-        }
-
-        throw new InvalidOperationException("Failed to parse CDN stream URL.");
+        throw new InvalidOperationException($"Failed to resolve stream URL for track {track.Id} ({track.Title}).", lastEx);
     }
 
     // ==========================================

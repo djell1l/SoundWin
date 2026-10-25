@@ -55,7 +55,14 @@ public sealed partial class WaveformControl : UserControl
     {
         if (d is WaveformControl ctrl)
         {
-            ctrl.RenderWaveform();
+            if (ctrl.DispatcherQueue != null && !ctrl.DispatcherQueue.HasThreadAccess)
+            {
+                ctrl.DispatcherQueue.TryEnqueue(() => ctrl.RenderWaveform());
+            }
+            else
+            {
+                ctrl.RenderWaveform();
+            }
         }
     }
 
@@ -63,7 +70,14 @@ public sealed partial class WaveformControl : UserControl
     {
         if (d is WaveformControl ctrl)
         {
-            ctrl.UpdateProgressColor();
+            if (ctrl.DispatcherQueue != null && !ctrl.DispatcherQueue.HasThreadAccess)
+            {
+                ctrl.DispatcherQueue.TryEnqueue(() => ctrl.UpdateProgressColor());
+            }
+            else
+            {
+                ctrl.UpdateProgressColor();
+            }
         }
     }
 

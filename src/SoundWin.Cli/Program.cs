@@ -1,24 +1,36 @@
 using System;
 using System.Net.Http;
-using System.Text.Json;
 using System.Threading.Tasks;
-using SoundCloudExplode;
+using SoundWin.Core.Services;
 
-var client = new SoundCloudClient();
-await client.InitializeAsync();
+Console.WriteLine("========================================");
+Console.WriteLine(" SoundWin Diagnostic CLI Runner");
+Console.WriteLine("========================================");
 
-using var http = new HttpClient();
-http.DefaultRequestHeaders.UserAgent.ParseAdd("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
+var apiClient = new SoundCloudApiClient();
+Console.WriteLine("Initializing SoundCloud API client...");
+await apiClient.EnsureInitializedAsync();
+Console.WriteLine($"Public Client ID acquired: {apiClient.ClientId}");
 
-var url = $"https://api-v2.soundcloud.com/mixed-selections?client_id={client.ClientId}&limit=5";
-var json = await http.GetStringAsync(url);
-using var doc = JsonDocument.Parse(json);
-var col = doc.RootElement.GetProperty("collection");
-var shelf = col[2]; // Trending by genre
-var firstItem = shelf.GetProperty("items").GetProperty("collection")[1]; // All Genres
+Console.WriteLine("\nSearching for tracks ('synthwave')...");
+var tracks = await apiClient.SearchTracksAsync("synthwave", limit: 3);
+Console.WriteLine($"Found {tracks.Count} tracks.");
 
-Console.WriteLine("Item JSON keys:");
-foreach (var prop in firstItem.EnumerateObject())
+foreach (var track in tracks)
 {
-    Console.WriteLine($"  {prop.Name}: {prop.Value.ToString().Substring(0, Math.Min(60, prop.Value.ToString().Length))}");
+    Console.WriteLine($"\n[Track {track.Id}] {track.Artist} - {track.Title} ({track.Duration:m\\:ss})");
+    Console.WriteLine($"  Artwork: {track.ArtworkUrl}");
+    Console.WriteLine($"  Transcodings: {track.Transcodings.Count}");
+    
+    try
+    {
+        var streamUrl = await apiClient.ResolveStreamUrlAsync(track);
+        Console.WriteLine($"  Resolved Stream URL: {streamUrl.Substring(0, Math.Min(80, streamUrl.Length))}...");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"  Failed to resolve stream: {ex.Message}");
+    }
 }
+
+Console.WriteLine("\nDiagnostic completed successfully.");
