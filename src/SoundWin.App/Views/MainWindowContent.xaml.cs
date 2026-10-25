@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -45,8 +45,11 @@ public sealed partial class MainWindowContent : UserControl
                 case "search":
                     ContentFrame.Navigate(typeof(SearchPage));
                     break;
+                                case "profile":
+                    ContentFrame.Navigate(typeof(ProfilePage));
+                    break;
                 case "library":
-                    ContentFrame.Navigate(typeof(LibraryPage));
+                    ContentFrame.Navigate(typeof(ProfilePage));
                     break;
             }
         }
@@ -74,7 +77,7 @@ public sealed partial class MainWindowContent : UserControl
     private void OnUserAvatarTapped(object sender, Microsoft.UI.Xaml.Input.TappedRoutedEventArgs e)
     {
         MainNavView.SelectedItem = MainNavView.MenuItems[2];
-        ContentFrame.Navigate(typeof(LibraryPage));
+        ContentFrame.Navigate(typeof(ProfilePage));
     }
 
     private void OnPlayPauseClicked(object sender, RoutedEventArgs e)

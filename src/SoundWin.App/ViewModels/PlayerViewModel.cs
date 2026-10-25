@@ -1,4 +1,5 @@
-using System;
+﻿using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -49,7 +50,12 @@ public partial class PlayerViewModel : ObservableObject
     [ObservableProperty]
     private WaveformData? _currentWaveform;
 
+    [ObservableProperty]
+    private ObservableCollection<TrackComment> _currentComments = new();
+
     public ObservableCollection<Track> Queue => _player.Queue;
+
+    public double DurationMs => Duration.TotalMilliseconds;
 
     public string FormattedPosition => Position.TotalHours >= 1
         ? Position.ToString(@"h\:mm\:ss")
@@ -72,7 +78,9 @@ public partial class PlayerViewModel : ObservableObject
             {
                 CurrentTrack = track;
                 Duration = track?.Duration ?? TimeSpan.Zero;
+                OnPropertyChanged(nameof(DurationMs));
                 _ = _rpc.UpdatePresenceAsync(CurrentTrack, IsPlaying, Position, Duration);
+                _ = LoadCommentsForCurrentTrackAsync();
             });
         };
 
@@ -98,6 +106,7 @@ public partial class PlayerViewModel : ObservableObject
                     case nameof(AudioPlayerService.Duration):
                         Duration = _player.Duration;
                         OnPropertyChanged(nameof(FormattedDuration));
+                        OnPropertyChanged(nameof(DurationMs));
                         break;
                     case nameof(AudioPlayerService.Progress):
                         Progress = _player.Progress;
@@ -111,6 +120,42 @@ public partial class PlayerViewModel : ObservableObject
                 }
             });
         };
+    }
+
+    public async Task LoadCommentsForCurrentTrackAsync()
+    {
+        if (CurrentTrack == null)
+        {
+            CurrentComments.Clear();
+            return;
+        }
+
+        try
+        {
+            var comments = await _apiClient.GetTrackCommentsAsync(CurrentTrack.Id, 80);
+            AppDispatcher.Dispatch(() =>
+            {
+                CurrentComments.Clear();
+                foreach (var c in comments)
+                {
+                    CurrentComments.Add(c);
+                }
+            });
+        }
+        catch { }
+    }
+
+    [RelayCommand]
+    public async Task PostComment(string body)
+    {
+        if (string.IsNullOrWhiteSpace(body) || CurrentTrack == null) return;
+
+        long ts = (long)Position.TotalMilliseconds;
+        var comment = await _apiClient.PostTrackCommentAsync(CurrentTrack.Id, body.Trim(), ts);
+        if (comment != null)
+        {
+            CurrentComments.Add(comment);
+        }
     }
 
     [RelayCommand]

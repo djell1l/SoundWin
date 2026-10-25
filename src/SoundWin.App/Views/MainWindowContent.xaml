@@ -1,4 +1,4 @@
-<UserControl
+﻿<UserControl
     x:Class="SoundWin.App.Views.MainWindowContent"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -75,6 +75,11 @@
                 <NavigationViewItem Content="Rechercher" Tag="search">
                     <NavigationViewItem.Icon>
                         <FontIcon Glyph="&#xE721;" />
+                    </NavigationViewItem.Icon>
+                </NavigationViewItem>
+                                <NavigationViewItem Content="Mon Profil" Tag="profile">
+                    <NavigationViewItem.Icon>
+                        <FontIcon Glyph="&#xE77B;" />
                     </NavigationViewItem.Icon>
                 </NavigationViewItem>
                 <NavigationViewItem Content="Ma Bibliothèque" Tag="library">
@@ -211,6 +216,8 @@
                             Grid.Column="1"
                             Height="28"
                             Waveform="{x:Bind PlayerVm.CurrentWaveform, Mode=OneWay}"
+                            DurationMs="{x:Bind PlayerVm.DurationMs, Mode=OneWay}"
+                            Comments="{x:Bind PlayerVm.CurrentComments, Mode=OneWay}"
                             Progress="{x:Bind PlayerVm.Progress, Mode=OneWay}"
                             SeekRequested="OnWaveformSeekRequested" />
 

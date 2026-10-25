@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
@@ -639,5 +639,178 @@ public class SoundCloudApiClient
             Description = el.TryGetProperty("description", out var desc) ? desc.GetString() : null,
             PermalinkUrl = el.TryGetProperty("permalink_url", out var perm) ? perm.GetString() : null
         };
+    }
+
+    // ==========================================
+    // TRACK COMMENTS & REACTIONS
+    // ==========================================
+    public async Task<List<TrackComment>> GetTrackCommentsAsync(long trackId, int limit = 100, CancellationToken ct = default)
+    {
+        await EnsureInitializedAsync(ct);
+        var url = $"https://api-v2.soundcloud.com/tracks/{trackId}/comments?threaded=1&filter_replies=0&client_id={_clientId}&limit={limit}";
+
+        try
+        {
+            using var request = CreateRequest(HttpMethod.Get, url);
+            using var response = await _http.SendAsync(request, ct);
+            if (!response.IsSuccessStatusCode) return new List<TrackComment>();
+
+            var json = await response.Content.ReadAsStringAsync(ct);
+            using var doc = JsonDocument.Parse(json);
+            var list = new List<TrackComment>();
+
+            if (doc.RootElement.TryGetProperty("collection", out var col))
+            {
+                foreach (var item in col.EnumerateArray())
+                {
+                    list.Add(ParseComment(item));
+                }
+            }
+            return list;
+        }
+        catch
+        {
+            return new List<TrackComment>();
+        }
+    }
+
+    public async Task<TrackComment?> PostTrackCommentAsync(long trackId, string body, long timestampMs, CancellationToken ct = default)
+    {
+        await EnsureInitializedAsync(ct);
+        if (!IsAuthenticated) return null;
+
+        var url = $"https://api-v2.soundcloud.com/tracks/{trackId}/comments?client_id={_clientId}";
+
+        var payload = new
+        {
+            comment = new
+            {
+                body,
+                timestamp = timestampMs
+            }
+        };
+
+        try
+        {
+            using var request = CreateRequest(HttpMethod.Post, url);
+            request.Content = new StringContent(JsonSerializer.Serialize(payload), System.Text.Encoding.UTF8, "application/json");
+
+            using var response = await _http.SendAsync(request, ct);
+            if (!response.IsSuccessStatusCode) return null;
+
+            var json = await response.Content.ReadAsStringAsync(ct);
+            using var doc = JsonDocument.Parse(json);
+            return ParseComment(doc.RootElement);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    // ==========================================
+    // USER PROFILE & DETAILS
+    // ==========================================
+    public async Task<User?> GetUserDetailsAsync(long userId, CancellationToken ct = default)
+    {
+        await EnsureInitializedAsync(ct);
+        var url = $"https://api-v2.soundcloud.com/users/{userId}?client_id={_clientId}";
+
+        try
+        {
+            using var request = CreateRequest(HttpMethod.Get, url);
+            using var response = await _http.SendAsync(request, ct);
+            if (!response.IsSuccessStatusCode) return null;
+
+            var json = await response.Content.ReadAsStringAsync(ct);
+            using var doc = JsonDocument.Parse(json);
+            return ParseUser(doc.RootElement);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    public async Task<List<Track>> GetUserTracksAsync(long userId, int limit = 30, int offset = 0, CancellationToken ct = default)
+    {
+        await EnsureInitializedAsync(ct);
+        var url = $"https://api-v2.soundcloud.com/users/{userId}/tracks?client_id={_clientId}&limit={limit}&offset={offset}";
+
+        try
+        {
+            using var request = CreateRequest(HttpMethod.Get, url);
+            using var response = await _http.SendAsync(request, ct);
+            if (!response.IsSuccessStatusCode) return new List<Track>();
+
+            var json = await response.Content.ReadAsStringAsync(ct);
+            using var doc = JsonDocument.Parse(json);
+            var list = new List<Track>();
+
+            if (doc.RootElement.TryGetProperty("collection", out var col))
+            {
+                foreach (var item in col.EnumerateArray())
+                {
+                    list.Add(ParseTrack(item));
+                }
+            }
+            return list;
+        }
+        catch
+        {
+            return new List<Track>();
+        }
+    }
+
+    public async Task<bool> UpdateProfileAsync(string? username, string? description, string? city, string? countryCode, CancellationToken ct = default)
+    {
+        await EnsureInitializedAsync(ct);
+        if (!IsAuthenticated) return false;
+
+        var url = $"https://api-v2.soundcloud.com/me?client_id={_clientId}";
+
+        var payload = new Dictionary<string, object>();
+        var userDict = new Dictionary<string, object?>();
+        if (!string.IsNullOrEmpty(username)) userDict["username"] = username;
+        if (description != null) userDict["description"] = description;
+        if (city != null) userDict["city"] = city;
+        if (countryCode != null) userDict["country_code"] = countryCode;
+        payload["user"] = userDict;
+
+        try
+        {
+            using var request = CreateRequest(HttpMethod.Put, url);
+            request.Content = new StringContent(JsonSerializer.Serialize(payload), System.Text.Encoding.UTF8, "application/json");
+
+            using var response = await _http.SendAsync(request, ct);
+            return response.IsSuccessStatusCode;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    public static TrackComment ParseComment(JsonElement el)
+    {
+        long ts = el.TryGetProperty("timestamp", out var tProp) && tProp.ValueKind == JsonValueKind.Number ? tProp.GetInt64() : 0;
+        var comment = new TrackComment
+        {
+            Id = el.TryGetProperty("id", out var idProp) ? idProp.GetInt64() : 0,
+            Body = el.TryGetProperty("body", out var bProp) ? bProp.GetString() ?? "" : "",
+            CreatedAt = el.TryGetProperty("created_at", out var cProp) && cProp.TryGetDateTime(out var dt) ? dt : DateTime.UtcNow,
+            TimestampMs = ts,
+            Timestamp = TimeSpan.FromMilliseconds(ts),
+            TrackId = el.TryGetProperty("track_id", out var trProp) ? trProp.GetInt64() : 0
+        };
+
+        if (el.TryGetProperty("user", out var uProp))
+        {
+            comment.UserId = uProp.TryGetProperty("id", out var uid) ? uid.GetInt64() : 0;
+            comment.Username = uProp.TryGetProperty("username", out var un) ? un.GetString() ?? "Anonyme" : "Anonyme";
+            comment.AvatarUrl = uProp.TryGetProperty("avatar_url", out var av) ? av.GetString() : null;
+        }
+
+        return comment;
     }
 }

@@ -1,0 +1,149 @@
+﻿<Page
+    x:Class="SoundWin.App.Views.ProfilePage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="using:SoundWin.App.Controls"
+    xmlns:models="using:SoundWin.Core.Models">
+
+    <ScrollViewer Padding="32,24,32,48">
+        <StackPanel MaxWidth="920" HorizontalAlignment="Left" Spacing="24">
+            <!-- HEADER / BANNER CARD -->
+            <Border
+                Background="#18181E"
+                BorderBrush="#25FFFFFF"
+                BorderThickness="1"
+                CornerRadius="16"
+                Padding="28">
+                <Grid ColumnDefinitions="Auto,*,Auto" VerticalAlignment="Center">
+                    <!-- HighRes Avatar -->
+                    <Border
+                        Grid.Column="0"
+                        Width="104"
+                        Height="104"
+                        CornerRadius="52"
+                        Margin="0,0,24,0"
+                        BorderBrush="#FF5500"
+                        BorderThickness="2">
+                        <Image Source="{x:Bind Vm.User.HighResAvatarUrl, Mode=OneWay}" Stretch="UniformToFill" />
+                    </Border>
+
+                    <!-- User Information & Stats -->
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="6">
+                        <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                            <TextBlock
+                                Text="{x:Bind Vm.User.Username, Mode=OneWay}"
+                                FontSize="24"
+                                FontWeight="Bold" />
+                            <Border Background="#25FF5500" CornerRadius="4" Padding="6,2">
+                                <TextBlock Text="ARTISTE" FontSize="10" FontWeight="Bold" Foreground="{StaticResource SoundCloudOrangeBrush}" />
+                            </Border>
+                        </StackPanel>
+
+                        <!-- Stats Row: Followers, Following, Tracks -->
+                        <StackPanel Orientation="Horizontal" Spacing="18">
+                            <StackPanel Orientation="Horizontal" Spacing="5">
+                                <TextBlock Text="{x:Bind Vm.User.FollowersCount, Mode=OneWay}" FontWeight="Bold" FontSize="13" />
+                                <TextBlock Text="abonnés" Opacity="0.65" FontSize="13" />
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Spacing="5">
+                                <TextBlock Text="{x:Bind Vm.User.FollowingsCount, Mode=OneWay}" FontWeight="Bold" FontSize="13" />
+                                <TextBlock Text="abonnements" Opacity="0.65" FontSize="13" />
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Spacing="5">
+                                <TextBlock Text="{x:Bind Vm.User.TrackCount, Mode=OneWay}" FontWeight="Bold" FontSize="13" />
+                                <TextBlock Text="titres" Opacity="0.65" FontSize="13" />
+                            </StackPanel>
+                        </StackPanel>
+
+                        <!-- Bio / Description -->
+                        <TextBlock
+                            Text="{x:Bind Vm.User.Description, Mode=OneWay, FallbackValue='Aucune bio renseignée.'}"
+                            FontSize="12"
+                            Opacity="0.75"
+                            TextWrapping="Wrap"
+                            MaxLines="2"
+                            Margin="0,4,0,0" />
+                    </StackPanel>
+
+                    <!-- Edit Profile Action Button -->
+                    <Button
+                        Grid.Column="2"
+                        Background="#25FFFFFF"
+                        BorderThickness="0"
+                        CornerRadius="8"
+                        Padding="14,8"
+                        Command="{x:Bind Vm.ToggleEditModeCommand}">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <FontIcon Glyph="&#xE70F;" FontSize="14" />
+                            <TextBlock Text="Modifier le profil" FontSize="12" FontWeight="SemiBold" />
+                        </StackPanel>
+                    </Button>
+                </Grid>
+            </Border>
+
+            <!-- EDIT PROFILE EXPANDER / PANEL -->
+            <Border
+                Visibility="{x:Bind Vm.IsEditing, Mode=OneWay, Converter={StaticResource BooleanVisibilityConverter}}"
+                Background="#1A1A22"
+                BorderBrush="{StaticResource SoundCloudOrangeBrush}"
+                BorderThickness="1"
+                CornerRadius="12"
+                Padding="20">
+                <StackPanel Spacing="16">
+                    <TextBlock Text="Modifier mes informations SoundCloud" FontSize="16" FontWeight="SemiBold" Foreground="{StaticResource SoundCloudOrangeBrush}" />
+
+                    <TextBox Header="Nom d'artiste / Pseudo" Text="{x:Bind Vm.EditUsername, Mode=TwoWay}" />
+                    <TextBox Header="Biographie / Description" Text="{x:Bind Vm.EditDescription, Mode=TwoWay}" TextWrapping="Wrap" AcceptsReturn="True" Height="80" />
+
+                    <Grid ColumnDefinitions="*,*">
+                        <TextBox Grid.Column="0" Header="Ville" Text="{x:Bind Vm.EditCity, Mode=TwoWay}" Margin="0,0,8,0" />
+                        <TextBox Grid.Column="1" Header="Code pays (ex: FR)" Text="{x:Bind Vm.EditCountry, Mode=TwoWay}" Margin="8,0,0,0" />
+                    </Grid>
+
+                    <StackPanel Orientation="Horizontal" Spacing="12" HorizontalAlignment="Right">
+                        <Button Content="Annuler" Command="{x:Bind Vm.ToggleEditModeCommand}" />
+                        <Button
+                            Content="Enregistrer les modifications"
+                            Background="{StaticResource SoundCloudOrangeBrush}"
+                            Foreground="White"
+                            FontWeight="SemiBold"
+                            Command="{x:Bind Vm.SaveProfileCommand}" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- TABS: Pistes publiées / Titres aimés -->
+            <TabView x:Name="ProfileTabView" IsAddTabButtonVisible="False" SelectionChanged="OnTabSelectionChanged">
+                <TabViewItem Header="Mes Morceaux" IsClosable="False">
+                    <ListView
+                        ItemsSource="{x:Bind Vm.UserTracks, Mode=OneWay}"
+                        ItemClick="OnTrackClicked"
+                        IsItemClickEnabled="True"
+                        SelectionMode="None"
+                        Padding="0,12">
+                        <ListView.ItemTemplate>
+                            <DataTemplate x:DataType="models:Track">
+                                <controls:TrackRowControl Track="{x:Bind}" />
+                            </DataTemplate>
+                        </ListView.ItemTemplate>
+                    </ListView>
+                </TabViewItem>
+
+                <TabViewItem Header="Coups de Cœur (Likes)" IsClosable="False">
+                    <ListView
+                        ItemsSource="{x:Bind Vm.LikedTracks, Mode=OneWay}"
+                        ItemClick="OnTrackClicked"
+                        IsItemClickEnabled="True"
+                        SelectionMode="None"
+                        Padding="0,12">
+                        <ListView.ItemTemplate>
+                            <DataTemplate x:DataType="models:Track">
+                                <controls:TrackRowControl Track="{x:Bind}" />
+                            </DataTemplate>
+                        </ListView.ItemTemplate>
+                    </ListView>
+                </TabViewItem>
+            </TabView>
+        </StackPanel>
+    </ScrollViewer>
+</Page>

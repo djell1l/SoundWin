@@ -1,4 +1,4 @@
-<UserControl
+﻿<UserControl
     x:Class="SoundWin.App.Controls.WaveformControl"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -10,5 +10,6 @@
 
     <Grid Background="Transparent">
         <Canvas x:Name="WaveCanvas" VerticalAlignment="Stretch" HorizontalAlignment="Stretch" IsHitTestVisible="False" />
+        <Canvas x:Name="CommentsCanvas" VerticalAlignment="Stretch" HorizontalAlignment="Stretch" />
     </Grid>
 </UserControl>
