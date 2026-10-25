@@ -5,180 +5,458 @@
     xmlns:controls="using:SoundWin.App.Controls"
     xmlns:models="using:SoundWin.Core.Models">
 
-    <ScrollViewer Padding="32,24,32,48">
-        <StackPanel MaxWidth="920" HorizontalAlignment="Left" Spacing="24">
-            <!-- HEADER / BANNER CARD -->
+    <ScrollViewer Padding="28,20,28,48">
+        <StackPanel MaxWidth="1120" HorizontalAlignment="Stretch" Spacing="20">
+
+            <!-- ==========================================
+                 1. SOUNDCLOUD HERO HEADER BANNER (240px)
+                 ========================================== -->
             <Border
-                Background="#18181E"
+                Height="230"
+                CornerRadius="6"
+                Background="#7A7A80"
                 BorderBrush="#25FFFFFF"
-                BorderThickness="1"
-                CornerRadius="16"
-                Padding="28">
-                <Grid ColumnDefinitions="Auto,*,Auto" VerticalAlignment="Center">
-                    <!-- HighRes Avatar -->
-                    <Border
-                        Grid.Column="0"
-                        Width="104"
-                        Height="104"
-                        CornerRadius="52"
-                        Margin="0,0,24,0"
-                        BorderBrush="#FF5500"
-                        BorderThickness="2">
-                        <Image Source="{x:Bind Vm.User.HighResAvatarUrl, Mode=OneWay}" Stretch="UniformToFill" />
+                BorderThickness="1">
+                <Grid>
+                    <!-- Optional Banner Background Image -->
+                    <Image
+                        x:Name="BannerHeaderImage"
+                        Source="{x:Bind Vm.User.HighResBannerUrl, Mode=OneWay}"
+                        Stretch="UniformToFill" />
+
+                    <!-- Subtle Dark Gradient Overlay for Contrast -->
+                    <Border>
+                        <Border.Background>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                <GradientStop Color="#20000000" Offset="0" />
+                                <GradientStop Color="#55000000" Offset="1" />
+                            </LinearGradientBrush>
+                        </Border.Background>
                     </Border>
 
-                    <!-- User Information & Stats -->
-                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="6">
-                        <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
-                            <TextBlock
-                                Text="{x:Bind Vm.User.Username, Mode=OneWay}"
-                                FontSize="24"
-                                FontWeight="Bold" />
-                            <Border Background="#25FF5500" CornerRadius="4" Padding="6,2">
-                                <TextBlock Text="ARTISTE" FontSize="10" FontWeight="Bold" Foreground="{StaticResource SoundCloudOrangeBrush}" />
+                    <!-- Left: Circular Avatar (172x172) + Black Box Badges -->
+                    <Grid Padding="28,0" ColumnDefinitions="Auto,*,Auto" VerticalAlignment="Center">
+                        <!-- Circular Profile Picture with Hover Camera Update Button -->
+                        <Grid
+                            Grid.Column="0"
+                            Width="172"
+                            Height="172"
+                            Margin="0,0,28,0"
+                            PointerEntered="OnAvatarAreaPointerEntered"
+                            PointerExited="OnAvatarAreaPointerExited">
+                            <PersonPicture
+                                x:Name="ProfileAvatarControl"
+                                Width="172"
+                                Height="172"
+                                ProfilePicture="{x:Bind Vm.User.HighResAvatarUrl, Mode=OneWay}"
+                                DisplayName="{x:Bind Vm.User.Username, Mode=OneWay}" />
+
+                            <!-- "Mettre à jour l'image" button on Avatar -->
+                            <Button
+                                x:Name="UpdateAvatarOverlayBtn"
+                                Visibility="Collapsed"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Bottom"
+                                Margin="0,0,0,14"
+                                Background="#D9121214"
+                                Foreground="White"
+                                BorderBrush="#40FFFFFF"
+                                BorderThickness="1"
+                                CornerRadius="4"
+                                Padding="10,5"
+                                FontSize="11"
+                                FontWeight="SemiBold"
+                                Click="OnUploadAvatarClicked">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <FontIcon Glyph="&#xE722;" FontSize="12" />
+                                    <TextBlock Text="Mettre à jour l'image" />
+                                </StackPanel>
+                            </Button>
+                        </Grid>
+
+                        <!-- SoundCloud Classic Black Label Boxes for Username & FullName -->
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="6" HorizontalAlignment="Left">
+                            <Border Background="#E60E0E10" Padding="12,6" CornerRadius="2" HorizontalAlignment="Left">
+                                <TextBlock
+                                    Text="{x:Bind Vm.User.Username, Mode=OneWay, FallbackValue='Utilisateur SoundCloud'}"
+                                    FontSize="22"
+                                    FontWeight="Bold"
+                                    Foreground="White" />
+                            </Border>
+
+                            <Border
+                                Background="#D90E0E10"
+                                Padding="10,4"
+                                CornerRadius="2"
+                                HorizontalAlignment="Left"
+                                Visibility="{x:Bind Vm.User.HasFullName, Mode=OneWay, Converter={StaticResource BooleanVisibilityConverter}}">
+                                <TextBlock
+                                    Text="{x:Bind Vm.User.DisplayFullName, Mode=OneWay}"
+                                    FontSize="14"
+                                    Foreground="#E0E0E0" />
+                            </Border>
+
+                            <Border
+                                Background="#CC0E0E10"
+                                Padding="10,3"
+                                CornerRadius="2"
+                                HorizontalAlignment="Left"
+                                Visibility="{x:Bind Vm.User.City, Mode=OneWay, Converter={StaticResource StringVisibilityConverter}}">
+                                <TextBlock
+                                    Text="{x:Bind Vm.User.City, Mode=OneWay}"
+                                    FontSize="12"
+                                    Foreground="#BDBDBD" />
                             </Border>
                         </StackPanel>
 
-                        <!-- Stats Row: Followers, Following, Tracks -->
-                        <StackPanel Orientation="Horizontal" Spacing="18">
-                            <StackPanel Orientation="Horizontal" Spacing="5">
-                                <TextBlock Text="{x:Bind Vm.User.FollowersCount, Mode=OneWay}" FontWeight="Bold" FontSize="13" />
-                                <TextBlock Text="abonnés" Opacity="0.65" FontSize="13" />
+                        <!-- Top-Right Button: "Uploadez une image d'en-tête" -->
+                        <Button
+                            Grid.Column="2"
+                            VerticalAlignment="Top"
+                            HorizontalAlignment="Right"
+                            Margin="0,-16,0,0"
+                            Background="#D9121214"
+                            Foreground="White"
+                            BorderBrush="#35FFFFFF"
+                            BorderThickness="1"
+                            CornerRadius="4"
+                            Padding="14,7"
+                            Visibility="{x:Bind Vm.IsOwnProfile, Mode=OneWay, Converter={StaticResource BooleanVisibilityConverter}}"
+                            Click="OnUploadHeaderBannerClicked">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <FontIcon Glyph="&#xE722;" FontSize="12" />
+                                <TextBlock Text="Uploadez une image d'en-tête" FontSize="12" FontWeight="SemiBold" />
                             </StackPanel>
-                            <StackPanel Orientation="Horizontal" Spacing="5">
-                                <TextBlock Text="{x:Bind Vm.User.FollowingsCount, Mode=OneWay}" FontWeight="Bold" FontSize="13" />
-                                <TextBlock Text="abonnements" Opacity="0.65" FontSize="13" />
-                            </StackPanel>
-                            <StackPanel Orientation="Horizontal" Spacing="5">
-                                <TextBlock Text="{x:Bind Vm.User.TrackCount, Mode=OneWay}" FontWeight="Bold" FontSize="13" />
-                                <TextBlock Text="titres" Opacity="0.65" FontSize="13" />
-                            </StackPanel>
-                        </StackPanel>
-
-                        <!-- Bio / Description -->
-                        <TextBlock
-                            Text="{x:Bind Vm.User.Description, Mode=OneWay, FallbackValue='Aucune bio renseignée.'}"
-                            FontSize="12"
-                            Opacity="0.75"
-                            TextWrapping="Wrap"
-                            MaxLines="2"
-                            Margin="0,4,0,0" />
-                    </StackPanel>
-
-                    <!-- Edit Profile Action Button -->
-                    <Button
-                        Grid.Column="2"
-                        Background="#25FFFFFF"
-                        BorderThickness="0"
-                        CornerRadius="8"
-                        Padding="14,8"
-                        Command="{x:Bind Vm.ToggleEditModeCommand}">
-                        <StackPanel Orientation="Horizontal" Spacing="8">
-                            <FontIcon Glyph="&#xE70F;" FontSize="14" />
-                            <TextBlock Text="Modifier le profil" FontSize="12" FontWeight="SemiBold" />
-                        </StackPanel>
-                    </Button>
+                        </Button>
+                    </Grid>
                 </Grid>
             </Border>
 
-            <!-- EDIT PROFILE EXPANDER / PANEL -->
-            <Border
-                Visibility="{x:Bind Vm.IsEditing, Mode=OneWay, Converter={StaticResource BooleanVisibilityConverter}}"
-                Background="#1A1A22"
-                BorderBrush="{StaticResource SoundCloudOrangeBrush}"
-                BorderThickness="1"
-                CornerRadius="12"
-                Padding="20">
-                <StackPanel Spacing="16">
-                    <TextBlock Text="Modifier mes informations SoundCloud" FontSize="16" FontWeight="SemiBold" Foreground="{StaticResource SoundCloudOrangeBrush}" />
+            <!-- ==========================================
+                 2. NAVIGATION BAR + ACTION BUTTONS (Partager / Modifier)
+                 ========================================== -->
+            <Grid ColumnDefinitions="*,Auto" BorderBrush="#20FFFFFF" BorderThickness="0,0,0,1" Padding="0,0,0,8">
+                <SelectorBar x:Name="ProfileSelectorBar" Grid.Column="0" SelectionChanged="OnSelectorBarSelectionChanged">
+                    <SelectorBarItem Text="Tout" Tag="all" IsSelected="True" />
+                    <SelectorBarItem Text="Titres populaires" Tag="popular" />
+                    <SelectorBarItem Text="Titres" Tag="tracks" />
+                    <SelectorBarItem Text="Playlists" Tag="playlists" />
+                    <SelectorBarItem Text="Reposts" Tag="reposts" />
+                    <SelectorBarItem Text="Mentions J'aime" Tag="likes" />
+                </SelectorBar>
 
-                    <TextBox Header="Nom d'artiste / Pseudo" Text="{x:Bind Vm.EditUsername, Mode=TwoWay}" />
-                    <TextBox Header="Biographie / Description" Text="{x:Bind Vm.EditDescription, Mode=TwoWay}" TextWrapping="Wrap" AcceptsReturn="True" Height="80" />
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                    <Button
+                        Background="#22FFFFFF"
+                        BorderThickness="0"
+                        CornerRadius="4"
+                        Padding="14,6"
+                        Click="OnShareProfileClicked">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <FontIcon Glyph="&#xE72D;" FontSize="12" />
+                            <TextBlock Text="Partager" FontSize="12" FontWeight="SemiBold" />
+                        </StackPanel>
+                    </Button>
 
-                    <Grid ColumnDefinitions="*,*">
-                        <TextBox Grid.Column="0" Header="Ville" Text="{x:Bind Vm.EditCity, Mode=TwoWay}" Margin="0,0,8,0" />
-                        <TextBox Grid.Column="1" Header="Code pays (ex: FR)" Text="{x:Bind Vm.EditCountry, Mode=TwoWay}" Margin="8,0,0,0" />
-                    </Grid>
-
-                    <StackPanel Orientation="Horizontal" Spacing="12" HorizontalAlignment="Right">
-                        <Button Content="Annuler" Command="{x:Bind Vm.ToggleEditModeCommand}" />
-                        <Button
-                            Content="Enregistrer les modifications"
-                            Background="{StaticResource SoundCloudOrangeBrush}"
-                            Foreground="White"
-                            FontWeight="SemiBold"
-                            Command="{x:Bind Vm.SaveProfileCommand}" />
-                    </StackPanel>
+                    <Button
+                        Background="#22FFFFFF"
+                        BorderThickness="0"
+                        CornerRadius="4"
+                        Padding="14,6"
+                        Visibility="{x:Bind Vm.IsOwnProfile, Mode=OneWay, Converter={StaticResource BooleanVisibilityConverter}}"
+                        Click="OnEditProfileModalClicked">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <FontIcon Glyph="&#xE70F;" FontSize="12" />
+                            <TextBlock Text="Modifier" FontSize="12" FontWeight="SemiBold" />
+                        </StackPanel>
+                    </Button>
                 </StackPanel>
-            </Border>
+            </Grid>
 
-            <!-- TABS: Pistes publiées / Playlists / Titres aimés -->
-            <TabView x:Name="ProfileTabView" IsAddTabButtonVisible="False" SelectionChanged="OnTabSelectionChanged">
-                <TabViewItem Header="Mes Morceaux" IsClosable="False">
+            <!-- Status / Notification Bar -->
+            <InfoBar
+                x:Name="ProfileStatusInfoBar"
+                IsOpen="False"
+                IsClosable="True" />
+
+            <!-- ==========================================
+                 3. TWO-COLUMN SOUNDCLOUD BODY (Main Feed + Right Sidebar)
+                 ========================================== -->
+            <Grid ColumnDefinitions="*,300" ColumnSpacing="32">
+
+                <!-- LEFT COLUMN: Active Tab Content -->
+                <StackPanel Grid.Column="0" Spacing="20">
+
+                    <!-- Pinned Spotlight Banner (Shown on 'Tout' tab) -->
+                    <Border
+                        x:Name="PinnedTracksSection"
+                        Background="#141418"
+                        BorderBrush="#18FFFFFF"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Padding="18">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <StackPanel Grid.Column="0" Spacing="6">
+                                <TextBlock Text="Titres épinglés" FontSize="18" FontWeight="Bold" />
+                                <TextBlock
+                                    Text="Mettez en avant vos meilleurs titres et playlists : classez-les dans les Titres épinglés pour que vos auditeurs les voient en premier lorsqu'ils consultent votre profil."
+                                    FontSize="12"
+                                    Opacity="0.65"
+                                    TextWrapping="Wrap" />
+                            </StackPanel>
+                            <Button
+                                Grid.Column="1"
+                                VerticalAlignment="Top"
+                                Background="#20FFFFFF"
+                                BorderThickness="0"
+                                CornerRadius="4"
+                                Padding="12,6"
+                                FontSize="12"
+                                Content="Modifier les Titres épinglés"
+                                Visibility="{x:Bind Vm.IsOwnProfile, Mode=OneWay, Converter={StaticResource BooleanVisibilityConverter}}" />
+                        </Grid>
+                    </Border>
+
+                    <!-- Section Header Title -->
+                    <TextBlock x:Name="ActiveSectionTitle" Text="Récent" FontSize="18" FontWeight="Bold" />
+
+                    <!-- Tracks List View (Used for Tout, Titres populaires, Titres, Reposts, Likes) -->
                     <ListView
-                        ItemsSource="{x:Bind Vm.UserTracks, Mode=OneWay}"
-                        ItemClick="OnTrackClicked"
-                        IsItemClickEnabled="False"
+                        x:Name="MainTracksListView"
+                        ItemsSource="{x:Bind Vm.AllRecentTracks, Mode=OneWay}"
                         SelectionMode="None"
-                        Padding="0,12">
+                        IsItemClickEnabled="False">
                         <ListView.ItemTemplate>
                             <DataTemplate x:DataType="models:Track">
                                 <controls:TrackRowControl Track="{x:Bind}" PlayRequested="OnTrackPlayRequested" />
                             </DataTemplate>
                         </ListView.ItemTemplate>
                     </ListView>
-                </TabViewItem>
 
-                <TabViewItem Header="Playlists" IsClosable="False">
-                    <GridView
-                        ItemsSource="{x:Bind Vm.UserPlaylists, Mode=OneWay}"
-                        SelectionMode="None"
-                        IsItemClickEnabled="True"
-                        ItemClick="OnPlaylistClicked"
-                        Padding="0,12">
-                        <GridView.ItemTemplate>
+                    <!-- Playlists Detailed View (Used when 'Playlists' tab is selected, matching screenshot #2!) -->
+                    <ItemsControl
+                        x:Name="PlaylistsDetailedList"
+                        Visibility="Collapsed"
+                        ItemsSource="{x:Bind Vm.UserPlaylists, Mode=OneWay}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <StackPanel Spacing="24" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
                             <DataTemplate x:DataType="models:Playlist">
                                 <Border
-                                    Width="168"
-                                    Padding="10"
-                                    Margin="0,0,12,12"
+                                    Background="#15151B"
+                                    BorderBrush="#20FFFFFF"
+                                    BorderThickness="1"
                                     CornerRadius="10"
-                                    Background="#16161C"
-                                    BorderBrush="#18FFFFFF"
-                                    BorderThickness="1">
-                                    <StackPanel Spacing="8">
-                                        <Grid Width="146" Height="146">
-                                            <Border CornerRadius="8" Background="#22222A">
+                                    Padding="20">
+                                    <Grid ColumnDefinitions="160,*" ColumnSpacing="20">
+                                        <!-- Left: Playlist Artwork -->
+                                        <Button
+                                            Grid.Column="0"
+                                            Padding="0"
+                                            Background="Transparent"
+                                            BorderThickness="0"
+                                            VerticalAlignment="Top"
+                                            Click="OnOpenPlaylistDetailClicked">
+                                            <Border Width="160" Height="160" CornerRadius="8" Background="#22222A">
                                                 <Image Source="{x:Bind DisplayArtworkUrl}" Stretch="UniformToFill" />
                                             </Border>
-                                        </Grid>
-                                        <TextBlock Text="{x:Bind Title}" FontWeight="SemiBold" FontSize="13" TextTrimming="CharacterEllipsis" MaxLines="1" />
-                                        <StackPanel Orientation="Horizontal" Spacing="4">
-                                            <TextBlock Text="{x:Bind TrackCount}" FontSize="11" Opacity="0.6" />
-                                            <TextBlock Text="titres" FontSize="11" Opacity="0.6" />
+                                        </Button>
+
+                                        <!-- Right: Play Button + Title + Embedded Track Rows + Action Bar -->
+                                        <StackPanel Grid.Column="1" Spacing="12">
+                                            <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                                                <Button
+                                                    Width="42"
+                                                    Height="42"
+                                                    CornerRadius="21"
+                                                    Padding="0"
+                                                    Background="White"
+                                                    Foreground="Black"
+                                                    Click="OnPlayPlaylistDirectClicked">
+                                                    <FontIcon Glyph="&#xE768;" FontSize="16" Margin="2,0,0,0" />
+                                                </Button>
+                                                <StackPanel VerticalAlignment="Center" Spacing="2">
+                                                    <TextBlock Text="{x:Bind Author}" FontSize="12" Opacity="0.65" />
+                                                    <TextBlock Text="{x:Bind Title}" FontSize="16" FontWeight="Bold" />
+                                                </StackPanel>
+                                            </StackPanel>
+
+                                            <!-- Preview of Tracks inside Playlist -->
+                                            <ItemsControl ItemsSource="{x:Bind Tracks}">
+                                                <ItemsControl.ItemsPanel>
+                                                    <ItemsPanelTemplate>
+                                                        <StackPanel Spacing="2" />
+                                                    </ItemsPanelTemplate>
+                                                </ItemsControl.ItemsPanel>
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate x:DataType="models:Track">
+                                                        <controls:TrackRowControl Track="{x:Bind}" PlayRequested="OnTrackPlayRequested" />
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+
+                                            <!-- Bottom Bar: "Afficher X titres" + Action Buttons -->
+                                            <StackPanel Orientation="Horizontal" Spacing="10" Margin="0,4,0,0">
+                                                <Button
+                                                    Background="#20FFFFFF"
+                                                    BorderThickness="0"
+                                                    CornerRadius="4"
+                                                    Padding="12,6"
+                                                    Click="OnOpenPlaylistDetailClicked">
+                                                    <StackPanel Orientation="Horizontal" Spacing="6">
+                                                        <FontIcon Glyph="&#xE8FD;" FontSize="12" />
+                                                        <TextBlock Text="Ouvrir la playlist complète" FontSize="12" FontWeight="SemiBold" />
+                                                    </StackPanel>
+                                                </Button>
+                                            </StackPanel>
                                         </StackPanel>
-                                    </StackPanel>
+                                    </Grid>
                                 </Border>
                             </DataTemplate>
-                        </GridView.ItemTemplate>
-                    </GridView>
-                </TabViewItem>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
 
-                <TabViewItem Header="Coups de Cœur (Likes)" IsClosable="False">
-                    <ListView
-                        ItemsSource="{x:Bind Vm.LikedTracks, Mode=OneWay}"
-                        ItemClick="OnTrackClicked"
-                        IsItemClickEnabled="False"
-                        SelectionMode="None"
-                        Padding="0,12">
-                        <ListView.ItemTemplate>
-                            <DataTemplate x:DataType="models:Track">
-                                <controls:TrackRowControl Track="{x:Bind}" PlayRequested="OnTrackPlayRequested" />
+                <!-- RIGHT SIDEBAR: Stats, Bio, Links, Likes Preview, Followings Preview -->
+                <StackPanel Grid.Column="1" Spacing="24">
+                    <!-- Stats Row: Abonnés | Abonnements | Titres -->
+                    <Grid ColumnDefinitions="*,*,*" BorderBrush="#20FFFFFF" BorderThickness="0,0,0,1" Padding="0,0,0,16">
+                        <StackPanel Grid.Column="0" Spacing="4">
+                            <TextBlock Text="Abonnés" FontSize="12" Opacity="0.6" />
+                            <TextBlock Text="{x:Bind Vm.User.FollowersCount, Mode=OneWay}" FontSize="20" FontWeight="Bold" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="1" Spacing="4" BorderBrush="#20FFFFFF" BorderThickness="1,0,1,0" Padding="12,0">
+                            <TextBlock Text="Abonnements" FontSize="12" Opacity="0.6" />
+                            <TextBlock Text="{x:Bind Vm.User.FollowingsCount, Mode=OneWay}" FontSize="20" FontWeight="Bold" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="2" Spacing="4" Padding="12,0,0,0">
+                            <TextBlock Text="Titres" FontSize="12" Opacity="0.6" />
+                            <TextBlock Text="{x:Bind Vm.User.TrackCount, Mode=OneWay}" FontSize="20" FontWeight="Bold" />
+                        </StackPanel>
+                    </Grid>
+
+                    <!-- Bio / Description -->
+                    <TextBlock
+                        Text="{x:Bind Vm.User.Description, Mode=OneWay}"
+                        FontSize="13"
+                        Opacity="0.85"
+                        TextWrapping="Wrap"
+                        Visibility="{x:Bind Vm.User.Description, Mode=OneWay, Converter={StaticResource StringVisibilityConverter}}" />
+
+                    <!-- Web Profile Links -->
+                    <ItemsControl ItemsSource="{x:Bind Vm.WebLinks, Mode=OneWay}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <StackPanel Spacing="6" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="models:WebProfileLink">
+                                <HyperlinkButton Content="{x:Bind Title}" NavigateUri="{x:Bind Url}" Padding="0" FontSize="12" />
                             </DataTemplate>
-                        </ListView.ItemTemplate>
-                    </ListView>
-                </TabViewItem>
-            </TabView>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <!-- Mentions J'aime Preview Section -->
+                    <StackPanel Spacing="12">
+                        <Grid ColumnDefinitions="*,Auto" BorderBrush="#20FFFFFF" BorderThickness="0,0,0,1" Padding="0,0,0,8">
+                            <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                                <FontIcon Glyph="&#xEB52;" FontSize="12" Opacity="0.7" />
+                                <TextBlock Text="{x:Bind Vm.User.LikesCount, Mode=OneWay}" FontSize="12" FontWeight="Bold" Opacity="0.8" />
+                                <TextBlock Text="MENTIONS J'AIME" FontSize="12" FontWeight="Bold" Opacity="0.8" />
+                            </StackPanel>
+                            <Button
+                                Grid.Column="1"
+                                Content="Tout afficher"
+                                FontSize="11"
+                                Padding="6,2"
+                                Background="Transparent"
+                                BorderThickness="0"
+                                Opacity="0.65"
+                                Click="OnShowAllLikesClicked" />
+                        </Grid>
+
+                        <ItemsControl ItemsSource="{x:Bind Vm.SidebarLikedTracks, Mode=OneWay}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <StackPanel Spacing="10" />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="models:Track">
+                                    <Button
+                                        Background="Transparent"
+                                        BorderThickness="0"
+                                        Padding="4"
+                                        HorizontalAlignment="Stretch"
+                                        HorizontalContentAlignment="Left"
+                                        Click="OnSidebarTrackClicked">
+                                        <Grid ColumnDefinitions="Auto,*">
+                                            <Border Grid.Column="0" Width="44" Height="44" CornerRadius="4" Margin="0,0,10,0">
+                                                <Image Source="{x:Bind HighResArtworkUrl}" Stretch="UniformToFill" />
+                                            </Border>
+                                            <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
+                                                <TextBlock Text="{x:Bind Artist}" FontSize="11" Opacity="0.6" TextTrimming="CharacterEllipsis" MaxLines="1" />
+                                                <TextBlock Text="{x:Bind Title}" FontSize="12" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" MaxLines="1" />
+                                            </StackPanel>
+                                        </Grid>
+                                    </Button>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+
+                    <!-- Abonnements Preview Section -->
+                    <StackPanel Spacing="12">
+                        <Grid ColumnDefinitions="*,Auto" BorderBrush="#20FFFFFF" BorderThickness="0,0,0,1" Padding="0,0,0,8">
+                            <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                                <FontIcon Glyph="&#xE716;" FontSize="12" Opacity="0.7" />
+                                <TextBlock Text="{x:Bind Vm.User.FollowingsCount, Mode=OneWay}" FontSize="12" FontWeight="Bold" Opacity="0.8" />
+                                <TextBlock Text="ABONNEMENTS" FontSize="12" FontWeight="Bold" Opacity="0.8" />
+                            </StackPanel>
+                        </Grid>
+
+                        <ItemsControl ItemsSource="{x:Bind Vm.Followings, Mode=OneWay}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <StackPanel Spacing="10" />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="models:User">
+                                    <Button
+                                        Background="Transparent"
+                                        BorderThickness="0"
+                                        Padding="4"
+                                        HorizontalAlignment="Stretch"
+                                        HorizontalContentAlignment="Left"
+                                        Click="OnFollowingUserClicked">
+                                        <Grid ColumnDefinitions="Auto,*,Auto" HorizontalAlignment="Stretch">
+                                            <PersonPicture
+                                                Grid.Column="0"
+                                                Width="40"
+                                                Height="40"
+                                                ProfilePicture="{x:Bind HighResAvatarUrl}"
+                                                DisplayName="{x:Bind Username}"
+                                                Margin="0,0,10,0" />
+                                            <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
+                                                <TextBlock Text="{x:Bind Username}" FontSize="12" FontWeight="Bold" TextTrimming="CharacterEllipsis" MaxLines="1" />
+                                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                                    <TextBlock Text="{x:Bind FollowersCount}" FontSize="11" Opacity="0.6" />
+                                                    <TextBlock Text="abonnés" FontSize="11" Opacity="0.6" />
+                                                </StackPanel>
+                                            </StackPanel>
+                                        </Grid>
+                                    </Button>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </StackPanel>
+            </Grid>
         </StackPanel>
     </ScrollViewer>
 </Page>

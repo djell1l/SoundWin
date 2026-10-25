@@ -173,6 +173,16 @@ public class SoundCloudApiClient
                         var track = ParseTrack(item);
                         if (track.Id > 0) shelf.Tracks.Add(track);
                     }
+                    else if (item.TryGetProperty("track", out var nestedTrk))
+                    {
+                        var track = ParseTrack(nestedTrk);
+                        if (track.Id > 0) shelf.Tracks.Add(track);
+                    }
+                    else if (item.TryGetProperty("playlist", out var nestedPl))
+                    {
+                        var playlist = ParsePlaylist(nestedPl);
+                        shelf.Playlists.Add(playlist);
+                    }
                 }
             }
 
@@ -1005,12 +1015,32 @@ public class SoundCloudApiClient
 
     public static User ParseUser(JsonElement el)
     {
+        string? bannerUrl = null;
+        if (el.TryGetProperty("visuals", out var visEl) &&
+            visEl.ValueKind == JsonValueKind.Object &&
+            visEl.TryGetProperty("visuals", out var visArray) &&
+            visArray.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var v in visArray.EnumerateArray())
+            {
+                if (v.TryGetProperty("visual_url", out var vUrl) && vUrl.ValueKind == JsonValueKind.String)
+                {
+                    bannerUrl = vUrl.GetString();
+                    break;
+                }
+            }
+        }
+
         return new User
         {
             Id = el.TryGetProperty("id", out var idProp) && idProp.ValueKind == JsonValueKind.Number ? idProp.GetInt64() : 0,
             Username = el.TryGetProperty("username", out var u) ? u.GetString() ?? "" : "",
+            FirstName = el.TryGetProperty("first_name", out var fn1) ? fn1.GetString() : null,
+            LastName = el.TryGetProperty("last_name", out var ln1) ? ln1.GetString() : null,
             FullName = el.TryGetProperty("full_name", out var fn) ? fn.GetString() : null,
+            Permalink = el.TryGetProperty("permalink", out var plink) ? plink.GetString() : null,
             AvatarUrl = el.TryGetProperty("avatar_url", out var av) ? av.GetString() : null,
+            BannerUrl = bannerUrl,
             City = el.TryGetProperty("city", out var city) ? city.GetString() : null,
             Country = el.TryGetProperty("country_code", out var cc) ? cc.GetString() : null,
             FollowersCount = el.TryGetProperty("followers_count", out var fol) && fol.ValueKind == JsonValueKind.Number ? fol.GetInt32() : 0,
@@ -1018,6 +1048,7 @@ public class SoundCloudApiClient
             TrackCount = el.TryGetProperty("track_count", out var tc) && tc.ValueKind == JsonValueKind.Number ? tc.GetInt32() : 0,
             LikesCount = el.TryGetProperty("likes_count", out var lc) && lc.ValueKind == JsonValueKind.Number ? lc.GetInt32() : 0,
             PlaylistCount = el.TryGetProperty("playlist_count", out var pc) && pc.ValueKind == JsonValueKind.Number ? pc.GetInt32() : 0,
+            RepostsCount = el.TryGetProperty("reposts_count", out var rc) && rc.ValueKind == JsonValueKind.Number ? rc.GetInt32() : 0,
             Description = el.TryGetProperty("description", out var desc) ? desc.GetString() : null,
             PermalinkUrl = el.TryGetProperty("permalink_url", out var perm) ? perm.GetString() : null
         };
@@ -1144,7 +1175,15 @@ public class SoundCloudApiClient
         }
     }
 
-    public async Task<bool> UpdateProfileAsync(string? username, string? description, string? city, string? countryCode, CancellationToken ct = default)
+    public async Task<bool> UpdateProfileAsync(
+        string? username,
+        string? description,
+        string? city,
+        string? countryCode,
+        string? firstName = null,
+        string? lastName = null,
+        string? permalink = null,
+        CancellationToken ct = default)
     {
         await EnsureInitializedAsync(ct);
         if (!IsAuthenticated) return false;
@@ -1154,6 +1193,9 @@ public class SoundCloudApiClient
         var payload = new Dictionary<string, object>();
         var userDict = new Dictionary<string, object?>();
         if (!string.IsNullOrEmpty(username)) userDict["username"] = username;
+        if (firstName != null) userDict["first_name"] = firstName;
+        if (lastName != null) userDict["last_name"] = lastName;
+        if (!string.IsNullOrEmpty(permalink)) userDict["permalink"] = permalink;
         if (description != null) userDict["description"] = description;
         if (city != null) userDict["city"] = city;
         if (countryCode != null) userDict["country_code"] = countryCode;
@@ -1164,6 +1206,272 @@ public class SoundCloudApiClient
             using var request = CreateRequest(HttpMethod.Put, url);
             request.Content = new StringContent(JsonSerializer.Serialize(payload), System.Text.Encoding.UTF8, "application/json");
 
+            using var response = await _http.SendAsync(request, ct);
+            return response.IsSuccessStatusCode;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    public async Task<string?> UploadAvatarAsync(byte[] imageBytes, string fileName = "avatar.jpg", CancellationToken ct = default)
+    {
+        await EnsureInitializedAsync(ct);
+        if (!IsAuthenticated || imageBytes == null || imageBytes.Length == 0) return null;
+
+        try
+        {
+            var base64Data = Convert.ToBase64String(imageBytes);
+            var url = $"https://api-v2.soundcloud.com/me?client_id={_clientId}";
+
+            // Try JSON avatar_data first (standard SoundCloud v2 format)
+            var payload = new
+            {
+                user = new
+                {
+                    avatar_data = base64Data
+                }
+            };
+
+            using (var request = CreateRequest(HttpMethod.Put, url))
+            {
+                request.Content = new StringContent(JsonSerializer.Serialize(payload), System.Text.Encoding.UTF8, "application/json");
+                using var response = await _http.SendAsync(request, ct);
+                if (response.IsSuccessStatusCode)
+                {
+                    var json = await response.Content.ReadAsStringAsync(ct);
+                    using var doc = JsonDocument.Parse(json);
+                    if (doc.RootElement.TryGetProperty("avatar_url", out var av))
+                    {
+                        return av.GetString();
+                    }
+                    return "updated";
+                }
+            }
+
+            // Fallback: multipart form-data
+            using (var request = CreateRequest(HttpMethod.Put, url))
+            using (var form = new MultipartFormDataContent())
+            {
+                var imgContent = new ByteArrayContent(imageBytes);
+                imgContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("image/jpeg");
+                form.Add(imgContent, "user[avatar_data]", fileName);
+                request.Content = form;
+
+                using var response = await _http.SendAsync(request, ct);
+                if (response.IsSuccessStatusCode)
+                {
+                    var json = await response.Content.ReadAsStringAsync(ct);
+                    using var doc = JsonDocument.Parse(json);
+                    if (doc.RootElement.TryGetProperty("avatar_url", out var av))
+                    {
+                        return av.GetString();
+                    }
+                    return "updated";
+                }
+            }
+        }
+        catch { }
+        return null;
+    }
+
+    public async Task<string?> UploadHeaderImageAsync(byte[] imageBytes, string fileName = "header.jpg", CancellationToken ct = default)
+    {
+        await EnsureInitializedAsync(ct);
+        if (!IsAuthenticated || imageBytes == null || imageBytes.Length == 0) return null;
+
+        try
+        {
+            var base64Data = Convert.ToBase64String(imageBytes);
+
+            // 1. Try /me/visuals endpoint (SoundCloud v2 profile banner endpoint)
+            var visualsUrl = $"https://api-v2.soundcloud.com/me/visuals?client_id={_clientId}";
+            var visualPayload = new
+            {
+                visual = new
+                {
+                    image_data = base64Data,
+                    entry_time = 0
+                }
+            };
+
+            using (var req = CreateRequest(HttpMethod.Post, visualsUrl))
+            {
+                req.Content = new StringContent(JsonSerializer.Serialize(visualPayload), System.Text.Encoding.UTF8, "application/json");
+                using var resp = await _http.SendAsync(req, ct);
+                if (resp.IsSuccessStatusCode)
+                {
+                    var json = await resp.Content.ReadAsStringAsync(ct);
+                    using var doc = JsonDocument.Parse(json);
+                    if (doc.RootElement.TryGetProperty("visual_url", out var vUrl))
+                    {
+                        return vUrl.GetString();
+                    }
+                    return "updated";
+                }
+            }
+
+            // 2. Fallback: PUT /me with visual_data
+            var meUrl = $"https://api-v2.soundcloud.com/me?client_id={_clientId}";
+            var mePayload = new
+            {
+                user = new
+                {
+                    visual_data = base64Data
+                }
+            };
+
+            using (var req = CreateRequest(HttpMethod.Put, meUrl))
+            {
+                req.Content = new StringContent(JsonSerializer.Serialize(mePayload), System.Text.Encoding.UTF8, "application/json");
+                using var resp = await _http.SendAsync(req, ct);
+                if (resp.IsSuccessStatusCode)
+                {
+                    return "updated";
+                }
+            }
+
+            // 3. Fallback: Multipart POST /me/visuals
+            using (var req = CreateRequest(HttpMethod.Post, visualsUrl))
+            using (var form = new MultipartFormDataContent())
+            {
+                var imgContent = new ByteArrayContent(imageBytes);
+                imgContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("image/jpeg");
+                form.Add(imgContent, "visual[image_data]", fileName);
+                req.Content = form;
+
+                using var resp = await _http.SendAsync(req, ct);
+                if (resp.IsSuccessStatusCode)
+                {
+                    return "updated";
+                }
+            }
+        }
+        catch { }
+        return null;
+    }
+
+    public async Task<List<User>> GetUserFollowingsAsync(long userId, int limit = 20, CancellationToken ct = default)
+    {
+        await EnsureInitializedAsync(ct);
+        var url = $"https://api-v2.soundcloud.com/users/{userId}/followings?client_id={_clientId}&limit={limit}";
+
+        try
+        {
+            using var request = CreateRequest(HttpMethod.Get, url);
+            using var response = await _http.SendAsync(request, ct);
+            if (!response.IsSuccessStatusCode) return new List<User>();
+
+            var json = await response.Content.ReadAsStringAsync(ct);
+            using var doc = JsonDocument.Parse(json);
+            var list = new List<User>();
+
+            if (doc.RootElement.TryGetProperty("collection", out var col))
+            {
+                foreach (var item in col.EnumerateArray())
+                {
+                    list.Add(ParseUser(item));
+                }
+            }
+            return list;
+        }
+        catch
+        {
+            return new List<User>();
+        }
+    }
+
+    public async Task<List<Track>> GetUserRepostsAsync(long userId, int limit = 30, CancellationToken ct = default)
+    {
+        await EnsureInitializedAsync(ct);
+        var url = $"https://api-v2.soundcloud.com/stream/users/{userId}/reposts?client_id={_clientId}&limit={limit}";
+
+        try
+        {
+            using var request = CreateRequest(HttpMethod.Get, url);
+            using var response = await _http.SendAsync(request, ct);
+            if (!response.IsSuccessStatusCode) return new List<Track>();
+
+            var json = await response.Content.ReadAsStringAsync(ct);
+            using var doc = JsonDocument.Parse(json);
+            var list = new List<Track>();
+
+            if (doc.RootElement.TryGetProperty("collection", out var col))
+            {
+                foreach (var item in col.EnumerateArray())
+                {
+                    if (item.TryGetProperty("track", out var trkEl))
+                    {
+                        var trk = ParseTrack(trkEl);
+                        trk.IsReposted = true;
+                        list.Add(trk);
+                    }
+                }
+            }
+            return list;
+        }
+        catch
+        {
+            return new List<Track>();
+        }
+    }
+
+    public async Task<List<WebProfileLink>> GetUserWebProfilesAsync(long userId, CancellationToken ct = default)
+    {
+        await EnsureInitializedAsync(ct);
+        var urn = Uri.EscapeDataString($"soundcloud:users:{userId}");
+        var url = $"https://api-v2.soundcloud.com/users/{urn}/web-profiles?client_id={_clientId}";
+
+        try
+        {
+            using var request = CreateRequest(HttpMethod.Get, url);
+            using var response = await _http.SendAsync(request, ct);
+            if (!response.IsSuccessStatusCode) return new List<WebProfileLink>();
+
+            var json = await response.Content.ReadAsStringAsync(ct);
+            using var doc = JsonDocument.Parse(json);
+            var list = new List<WebProfileLink>();
+
+            if (doc.RootElement.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var item in doc.RootElement.EnumerateArray())
+                {
+                    list.Add(new WebProfileLink
+                    {
+                        Id = item.TryGetProperty("id", out var idEl) && idEl.ValueKind == JsonValueKind.Number ? idEl.GetInt64() : 0,
+                        Title = item.TryGetProperty("title", out var tEl) ? tEl.GetString() ?? "" : "",
+                        Url = item.TryGetProperty("url", out var uEl) ? uEl.GetString() ?? "" : "",
+                        Service = item.TryGetProperty("service", out var sEl) ? sEl.GetString() : null
+                    });
+                }
+            }
+            return list;
+        }
+        catch
+        {
+            return new List<WebProfileLink>();
+        }
+    }
+
+    public async Task<bool> UpdateUserWebProfilesAsync(long userId, IEnumerable<WebProfileLink> links, CancellationToken ct = default)
+    {
+        await EnsureInitializedAsync(ct);
+        if (!IsAuthenticated) return false;
+
+        var urn = Uri.EscapeDataString($"soundcloud:users:{userId}");
+        var url = $"https://api-v2.soundcloud.com/users/{urn}/web-profiles?client_id={_clientId}";
+
+        try
+        {
+            var payload = links.Select(l => new
+            {
+                title = l.Title,
+                url = l.Url
+            }).ToArray();
+
+            using var request = CreateRequest(HttpMethod.Put, url);
+            request.Content = new StringContent(JsonSerializer.Serialize(payload), System.Text.Encoding.UTF8, "application/json");
             using var response = await _http.SendAsync(request, ct);
             return response.IsSuccessStatusCode;
         }
@@ -1359,6 +1667,62 @@ public class SoundCloudApiClient
             return false;
         }
         catch { return false; }
+    }
+
+    public async Task<List<Track>> GetPlayHistoryAsync(int limit = 16, CancellationToken ct = default)
+    {
+        if (!IsAuthenticated) return new List<Track>();
+        await EnsureInitializedAsync(ct);
+
+        var url = $"https://api-v2.soundcloud.com/me/play-history/tracks?client_id={_clientId}&limit={limit}";
+        try
+        {
+            using var request = CreateRequest(HttpMethod.Get, url);
+            using var response = await _http.SendAsync(request, ct);
+            if (!response.IsSuccessStatusCode) return new List<Track>();
+
+            var json = await response.Content.ReadAsStringAsync(ct);
+            using var doc = JsonDocument.Parse(json);
+            var list = new List<Track>();
+
+            if (doc.RootElement.TryGetProperty("collection", out var col))
+            {
+                foreach (var item in col.EnumerateArray())
+                {
+                    if (item.TryGetProperty("track", out var trkEl))
+                    {
+                        if (!IsAdOrPromotedItem(trkEl)) list.Add(ParseTrack(trkEl));
+                    }
+                    else if (item.TryGetProperty("title", out _))
+                    {
+                        if (!IsAdOrPromotedItem(item)) list.Add(ParseTrack(item));
+                    }
+                }
+            }
+            return list;
+        }
+        catch
+        {
+            return new List<Track>();
+        }
+    }
+
+    public async Task<bool> FollowUserAsync(long currentUserId, long targetUserId, CancellationToken ct = default)
+    {
+        if (!IsAuthenticated || currentUserId <= 0 || targetUserId <= 0) return false;
+        await EnsureInitializedAsync(ct);
+
+        var url = $"https://api-v2.soundcloud.com/users/{currentUserId}/followings/{targetUserId}?client_id={_clientId}";
+        try
+        {
+            using var request = CreateRequest(HttpMethod.Put, url);
+            using var response = await _http.SendAsync(request, ct);
+            return response.IsSuccessStatusCode;
+        }
+        catch
+        {
+            return false;
+        }
     }
 
     public async Task<List<User>> GetWhoToFollowAsync(int limit = 12, CancellationToken ct = default)

@@ -10,6 +10,7 @@ namespace SoundWin.App.Views;
 
 public sealed partial class MainWindow : Window
 {
+    public static IntPtr CurrentWindowHandle { get; private set; }
     private IntPtr _hWnd;
     private AppWindow? _appWindow;
 
@@ -36,6 +37,7 @@ public sealed partial class MainWindow : Window
         SetTitleBar(RootContent.TitleBarElement);
 
         _hWnd = WindowNative.GetWindowHandle(this);
+        CurrentWindowHandle = _hWnd;
         var windowId = Win32Interop.GetWindowIdFromWindow(_hWnd);
         _appWindow = AppWindow.GetFromWindowId(windowId);
 

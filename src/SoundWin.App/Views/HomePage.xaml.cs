@@ -46,7 +46,7 @@ public sealed partial class HomePage : Page
 
     private void OnHorizontalScrollViewerPointerWheelChanged(object sender, PointerRoutedEventArgs e)
     {
-        // When user scrolls with normal mouse wheel (without Shift) over a horizontal album row,
+        // When user scrolls with normal mouse wheel (without Shift) over a horizontal row,
         // forward the vertical scroll directly to the outer MainScrollViewer so scrolling never gets stuck.
         if (!e.KeyModifiers.HasFlag(VirtualKeyModifiers.Shift))
         {
@@ -77,11 +77,37 @@ public sealed partial class HomePage : Page
         }
     }
 
-    private async void OnTrackPlayRequested(object? sender, Track track)
+    private async void OnTrackCardClicked(object sender, RoutedEventArgs e)
     {
-        if (track != null)
+        if (sender is FrameworkElement { DataContext: Track track })
         {
             await ViewModel.PlayTrack(track);
         }
+    }
+
+    private async void OnRefreshSidebarClicked(object sender, RoutedEventArgs e)
+    {
+        await ViewModel.RefreshSidebarAsync();
+    }
+
+    private void OnSuggestedArtistClicked(object sender, RoutedEventArgs e)
+    {
+        if (sender is FrameworkElement { DataContext: SoundWin.Core.Models.User user } && user.Id > 0)
+        {
+            MainWindowContent.Current?.NavigateToProfile(user.Id);
+        }
+    }
+
+    private async void OnFollowSuggestedArtistClicked(object sender, RoutedEventArgs e)
+    {
+        if (sender is FrameworkElement { DataContext: SoundWin.Core.Models.User user })
+        {
+            await ViewModel.FollowUserAsync(user);
+        }
+    }
+
+    private void OnViewAllLikesClicked(object sender, RoutedEventArgs e)
+    {
+        MainWindowContent.Current?.NavigateToLibrary();
     }
 }
