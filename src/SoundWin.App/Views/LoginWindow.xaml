@@ -1,0 +1,11 @@
+<Window
+    x:Class="SoundWin.App.Views.LoginWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Title="Connexion SoundCloud">
+
+    <Grid Background="#121212">
+        <WebView2 x:Name="LoginWebView" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" />
+        <ProgressBar x:Name="LoginProgress" IsIndeterminate="True" VerticalAlignment="Top" Visibility="Visible" />
+    </Grid>
+</Window>

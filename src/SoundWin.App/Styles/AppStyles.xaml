@@ -1,0 +1,26 @@
+<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:converters="using:SoundWin.App.Converters">
+
+    <!-- SoundWin Branding Colors -->
+    <Color x:Key="SoundCloudOrange">#FFFF5500</Color>
+    <SolidColorBrush x:Key="SoundCloudOrangeBrush" Color="{StaticResource SoundCloudOrange}" />
+
+    <Color x:Key="SoundWinCardBackground">#18181B</Color>
+    <SolidColorBrush x:Key="SoundWinCardBackgroundBrush" Color="{StaticResource SoundWinCardBackground}" />
+
+    <Color x:Key="SoundWinCardHover">#27272A</Color>
+    <SolidColorBrush x:Key="SoundWinCardHoverBrush" Color="{StaticResource SoundWinCardHover}" />
+
+    <CornerRadius x:Key="SoundWinCardCornerRadius">10</CornerRadius>
+    <CornerRadius x:Key="SoundWinPillCornerRadius">20</CornerRadius>
+
+    <!-- Converters -->
+    <converters:StringVisibilityConverter x:Key="StringVisibilityConverter" />
+    <converters:BooleanVisibilityConverter x:Key="BooleanVisibilityConverter" />
+    <converters:BooleanPlayIconConverter x:Key="BooleanPlayIconConverter" />
+    <converters:BooleanHeartConverter x:Key="BooleanHeartConverter" />
+    <converters:BooleanOrangeBrushConverter x:Key="BooleanOrangeBrushConverter" />
+    <converters:BooleanOpacityConverter x:Key="BooleanOpacityConverter" />
+</ResourceDictionary>

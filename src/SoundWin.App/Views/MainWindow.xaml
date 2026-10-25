@@ -1,0 +1,13 @@
+<Window
+    x:Class="SoundWin.App.Views.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:SoundWin.App.Views"
+    Title="SoundWin">
+
+    <Window.SystemBackdrop>
+        <MicaBackdrop Kind="BaseAlt" />
+    </Window.SystemBackdrop>
+
+    <local:MainWindowContent x:Name="RootContent" />
+</Window>

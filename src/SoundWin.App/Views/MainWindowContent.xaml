@@ -1,0 +1,260 @@
+<UserControl
+    x:Class="SoundWin.App.Views.MainWindowContent"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="using:SoundWin.App.Controls"
+    xmlns:models="using:SoundWin.Core.Models">
+
+    <Grid RowDefinitions="Auto,*,Auto">
+        <!-- CUSTOM TITLE BAR -->
+        <Grid x:Name="AppTitleBar" Grid.Row="0" Height="48" Padding="16,0" ColumnDefinitions="Auto,*,Auto">
+            <!-- App Brand -->
+            <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                <Border CornerRadius="4">
+                    <Image Source="ms-appx:///Assets/Square44x44Logo.png" Width="22" Height="22" />
+                </Border>
+                <TextBlock Text="SoundWin" FontWeight="Bold" FontSize="14" VerticalAlignment="Center" />
+                <Border Background="#25FF5500" CornerRadius="4" Padding="6,2" Margin="4,0,0,0">
+                    <TextBlock Text="EDGE" FontSize="10" FontWeight="Bold" Foreground="{StaticResource SoundCloudOrangeBrush}" />
+                </Border>
+            </StackPanel>
+
+            <!-- Search Bar in TitleBar -->
+            <AutoSuggestBox
+                x:Name="TitleSearchBox"
+                Grid.Column="1"
+                MaxWidth="420"
+                Height="32"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                PlaceholderText="Rechercher..."
+                QueryIcon="Find"
+                QuerySubmitted="OnTitleSearchSubmitted" />
+
+            <!-- Window Caption Controls Area (reserved) -->
+            <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Spacing="8" Margin="0,0,140,0">
+                <PersonPicture x:Name="TitleUserAvatar" Width="28" Height="28" Tapped="OnUserAvatarTapped" />
+            </StackPanel>
+        </Grid>
+
+        <!-- MAIN BODY: NAVIGATION VIEW + CONTENT FRAME -->
+        <NavigationView
+            x:Name="MainNavView"
+            Grid.Row="1"
+            PaneDisplayMode="Left"
+            IsBackButtonVisible="Collapsed"
+            IsSettingsVisible="False"
+            SelectionChanged="OnNavSelectionChanged">
+
+            <NavigationView.MenuItems>
+                <NavigationViewItem Content="Accueil" Tag="home">
+                    <NavigationViewItem.Icon>
+                        <FontIcon Glyph="&#xE80F;" />
+                    </NavigationViewItem.Icon>
+                </NavigationViewItem>
+                <NavigationViewItem Content="Rechercher" Tag="search">
+                    <NavigationViewItem.Icon>
+                        <FontIcon Glyph="&#xE721;" />
+                    </NavigationViewItem.Icon>
+                </NavigationViewItem>
+                <NavigationViewItem Content="Ma Bibliothèque" Tag="library">
+                    <NavigationViewItem.Icon>
+                        <FontIcon Glyph="&#xE8D7;" />
+                    </NavigationViewItem.Icon>
+                </NavigationViewItem>
+            </NavigationView.MenuItems>
+
+            <Frame x:Name="ContentFrame" />
+        </NavigationView>
+
+        <!-- BOTTOM PERSISTENT PLAYER BAR -->
+        <Border
+            Grid.Row="2"
+            Height="90"
+            Background="#E6101014"
+            BorderBrush="#25FFFFFF"
+            BorderThickness="0,1,0,0"
+            Padding="20,0">
+
+            <Grid ColumnDefinitions="280,*,240" VerticalAlignment="Center">
+                <!-- LEFT: Current Track Info -->
+                <Grid Grid.Column="0" ColumnDefinitions="Auto,*,Auto" VerticalAlignment="Center">
+                    <Border CornerRadius="8" Width="54" Height="54" Margin="0,0,12,0" Background="#222">
+                        <Image
+                            Source="{x:Bind PlayerVm.CurrentTrack.HighResArtworkUrl, Mode=OneWay}"
+                            Stretch="UniformToFill" />
+                    </Border>
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
+                        <TextBlock
+                            Text="{x:Bind PlayerVm.CurrentTrack.Title, Mode=OneWay, FallbackValue='Aucun titre en cours'}"
+                            FontWeight="SemiBold"
+                            FontSize="13"
+                            TextTrimming="CharacterEllipsis"
+                            MaxLines="1" />
+                        <TextBlock
+                            Text="{x:Bind PlayerVm.CurrentTrack.Artist, Mode=OneWay, FallbackValue='Sélectionnez un morceau'}"
+                            FontSize="11"
+                            Opacity="0.65"
+                            TextTrimming="CharacterEllipsis"
+                            MaxLines="1" />
+                    </StackPanel>
+                    <Button
+                        Grid.Column="2"
+                        Margin="8,0,0,0"
+                        Background="Transparent"
+                        BorderThickness="0"
+                        Padding="6"
+                        Click="OnLikeButtonClicked"
+                        ToolTipService.ToolTip="Aimer ce titre">
+                        <FontIcon
+                            Glyph="{x:Bind PlayerVm.CurrentTrack.IsLiked, Mode=OneWay, Converter={StaticResource BooleanHeartConverter}, FallbackValue='&#xEB51;'}"
+                            FontSize="16"
+                            Foreground="{x:Bind PlayerVm.CurrentTrack.IsLiked, Mode=OneWay, Converter={StaticResource BooleanOrangeBrushConverter}, FallbackValue='#888'}" />
+                    </Button>
+                </Grid>
+
+                <!-- CENTER: Playback Controls + Waveform -->
+                <StackPanel Grid.Column="1" HorizontalAlignment="Center" MaxWidth="640" Width="640" Spacing="4">
+                    <!-- Buttons Row -->
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="16" VerticalAlignment="Center">
+                        <!-- Shuffle -->
+                        <Button
+                            Background="Transparent"
+                            BorderThickness="0"
+                            Padding="6"
+                            Click="OnShuffleClicked"
+                            ToolTipService.ToolTip="Lecture aléatoire">
+                            <FontIcon Glyph="&#xE8B1;" FontSize="13" Opacity="{x:Bind PlayerVm.IsShuffle, Mode=OneWay, Converter={StaticResource BooleanOpacityConverter}, FallbackValue=0.5}" />
+                        </Button>
+
+                        <!-- Previous -->
+                        <Button
+                            Background="Transparent"
+                            BorderThickness="0"
+                            Padding="6"
+                            Click="OnPreviousClicked"
+                            ToolTipService.ToolTip="Précédent">
+                            <FontIcon Glyph="&#xE892;" FontSize="15" />
+                        </Button>
+
+                        <!-- Play/Pause Accent Button -->
+                        <Button
+                            Width="38"
+                            Height="38"
+                            CornerRadius="19"
+                            Padding="0"
+                            Background="{StaticResource SoundCloudOrangeBrush}"
+                            Foreground="White"
+                            Click="OnPlayPauseClicked"
+                            ToolTipService.ToolTip="Lecture / Pause">
+                            <FontIcon
+                                Glyph="{x:Bind PlayerVm.IsPlaying, Mode=OneWay, Converter={StaticResource BooleanPlayIconConverter}, FallbackValue='&#xE768;'}"
+                                FontSize="16"
+                                Margin="2,0,0,0" />
+                        </Button>
+
+                        <!-- Next -->
+                        <Button
+                            Background="Transparent"
+                            BorderThickness="0"
+                            Padding="6"
+                            Click="OnNextClicked"
+                            ToolTipService.ToolTip="Suivant">
+                            <FontIcon Glyph="&#xE893;" FontSize="15" />
+                        </Button>
+
+                        <!-- Repeat -->
+                        <Button
+                            Background="Transparent"
+                            BorderThickness="0"
+                            Padding="6"
+                            Click="OnRepeatClicked"
+                            ToolTipService.ToolTip="Répéter">
+                            <FontIcon Glyph="&#xE8EE;" FontSize="13" Opacity="0.7" />
+                        </Button>
+                    </StackPanel>
+
+                    <!-- Waveform + Timers Row -->
+                    <Grid ColumnDefinitions="Auto,*,Auto" VerticalAlignment="Center">
+                        <TextBlock
+                            Grid.Column="0"
+                            Text="{x:Bind PlayerVm.FormattedPosition, Mode=OneWay, FallbackValue='0:00'}"
+                            FontSize="10"
+                            FontFamily="Consolas, Segoe UI"
+                            Opacity="0.75"
+                            VerticalAlignment="Center"
+                            Margin="0,0,10,0" />
+
+                        <!-- Interactive SoundCloud Waveform Control -->
+                        <controls:WaveformControl
+                            x:Name="PlayerWaveform"
+                            Grid.Column="1"
+                            Height="28"
+                            Waveform="{x:Bind PlayerVm.CurrentWaveform, Mode=OneWay}"
+                            Progress="{x:Bind PlayerVm.Progress, Mode=OneWay}"
+                            SeekRequested="OnWaveformSeekRequested" />
+
+                        <TextBlock
+                            Grid.Column="2"
+                            Text="{x:Bind PlayerVm.FormattedDuration, Mode=OneWay, FallbackValue='0:00'}"
+                            FontSize="10"
+                            FontFamily="Consolas, Segoe UI"
+                            Opacity="0.75"
+                            VerticalAlignment="Center"
+                            Margin="10,0,0,0" />
+                    </Grid>
+                </StackPanel>
+
+                <!-- RIGHT: Volume & Queue -->
+                <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="12" VerticalAlignment="Center">
+                    <!-- Volume Icon Button -->
+                    <Button
+                        Background="Transparent"
+                        BorderThickness="0"
+                        Padding="6"
+                        Click="OnMuteToggleClicked">
+                        <FontIcon Glyph="&#xE767;" FontSize="14" Opacity="0.8" />
+                    </Button>
+
+                    <!-- Volume Slider -->
+                    <Slider
+                        Width="90"
+                        Minimum="0"
+                        Maximum="1"
+                        StepFrequency="0.01"
+                        Value="{x:Bind PlayerVm.Volume, Mode=TwoWay}"
+                        VerticalAlignment="Center" />
+
+                    <!-- Queue Button with Flyout -->
+                    <Button
+                        Background="Transparent"
+                        BorderThickness="0"
+                        Padding="6"
+                        ToolTipService.ToolTip="File de lecture">
+                        <Button.Flyout>
+                            <Flyout Placement="Top">
+                                <StackPanel Width="320" MaxHeight="400" Spacing="10">
+                                    <TextBlock Text="File de lecture" FontWeight="Bold" FontSize="14" />
+                                    <ListView ItemsSource="{x:Bind PlayerVm.Queue, Mode=OneWay}" SelectionMode="None">
+                                        <ListView.ItemTemplate>
+                                            <DataTemplate x:DataType="models:Track">
+                                                <Grid Padding="6,4" ColumnDefinitions="Auto,*">
+                                                    <Image Source="{x:Bind HighResArtworkUrl}" Width="32" Height="32" Margin="0,0,8,0" />
+                                                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                                        <TextBlock Text="{x:Bind Title}" FontSize="12" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                                        <TextBlock Text="{x:Bind Artist}" FontSize="10" Opacity="0.6" TextTrimming="CharacterEllipsis" />
+                                                    </StackPanel>
+                                                </Grid>
+                                            </DataTemplate>
+                                        </ListView.ItemTemplate>
+                                    </ListView>
+                                </StackPanel>
+                            </Flyout>
+                        </Button.Flyout>
+                        <FontIcon Glyph="&#xE90B;" FontSize="15" Opacity="0.8" />
+                    </Button>
+                </StackPanel>
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>

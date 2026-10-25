@@ -1,0 +1,27 @@
+## Visual Studio / .NET
+[Bb]in/
+[Oo]bj/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+.vs/
+.vscode/
+
+## Build Outputs & Packages
+dist/
+*.nupkg
+*.pri
+*.xbf
+
+## Logs
+*.log
+_firstchance.log
+_crash.log
+_trace.log
+
+## OS Generated
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
