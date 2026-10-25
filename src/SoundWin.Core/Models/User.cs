@@ -79,11 +79,11 @@ public partial class User : ObservableObject
         }
     }
 
-    public string? HighResBannerUrl
+    public string HighResBannerUrl
     {
         get
         {
-            if (string.IsNullOrEmpty(BannerUrl)) return null;
+            if (string.IsNullOrEmpty(BannerUrl)) return string.Empty;
             return BannerUrl.Replace("-large.", "-t2480x520.").Replace("-original.", "-t2480x520.");
         }
     }

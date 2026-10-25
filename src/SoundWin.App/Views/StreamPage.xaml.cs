@@ -10,10 +10,7 @@ public sealed partial class StreamPage : Page
 {
     public StreamViewModel ViewModel { get; }
 
-    public StreamPage()
-    {
-        InitializeComponent();
-        ViewModel = App.Services.GetRequiredService<StreamViewModel>();
+    public StreamPage() { ViewModel = App.Services.GetRequiredService<StreamViewModel>(); InitializeComponent();
         Loaded += OnLoaded;
     }
 

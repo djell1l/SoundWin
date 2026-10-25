@@ -17,10 +17,7 @@ public sealed partial class ProfilePage : Page
 {
     public ProfileViewModel Vm { get; }
 
-    public ProfilePage()
-    {
-        InitializeComponent();
-        Vm = App.Services.GetRequiredService<ProfileViewModel>();
+    public ProfilePage() { Vm = App.Services.GetRequiredService<ProfileViewModel>(); InitializeComponent();
     }
 
     protected override async void OnNavigatedTo(NavigationEventArgs e)

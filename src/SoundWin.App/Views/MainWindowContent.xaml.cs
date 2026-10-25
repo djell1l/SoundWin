@@ -21,12 +21,7 @@ public sealed partial class MainWindowContent : UserControl
 
     public MainWindowContent()
     {
-        Current = this;
-        InitializeComponent();
-
-        PlayerVm = App.Services.GetRequiredService<PlayerViewModel>();
-        MainVm = App.Services.GetRequiredService<MainViewModel>();
-        SettingsVm = App.Services.GetRequiredService<SettingsViewModel>();
+        Current = this; PlayerVm = App.Services.GetRequiredService<PlayerViewModel>(); MainVm = App.Services.GetRequiredService<MainViewModel>(); SettingsVm = App.Services.GetRequiredService<SettingsViewModel>(); InitializeComponent();
 
         // Default page: Home
         MainNavView.SelectedItem = MainNavView.MenuItems[0];

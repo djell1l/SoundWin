@@ -11,10 +11,7 @@ public sealed partial class LibraryPage : Page
 {
     public LibraryViewModel ViewModel { get; }
 
-    public LibraryPage()
-    {
-        InitializeComponent();
-        ViewModel = App.Services.GetRequiredService<LibraryViewModel>();
+    public LibraryPage() { ViewModel = App.Services.GetRequiredService<LibraryViewModel>(); InitializeComponent();
 
         Loaded += OnLoaded;
     }

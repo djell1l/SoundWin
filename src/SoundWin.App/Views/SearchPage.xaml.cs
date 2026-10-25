@@ -12,10 +12,7 @@ public sealed partial class SearchPage : Page
 {
     public SearchViewModel ViewModel { get; }
 
-    public SearchPage()
-    {
-        InitializeComponent();
-        ViewModel = App.Services.GetRequiredService<SearchViewModel>();
+    public SearchPage() { ViewModel = App.Services.GetRequiredService<SearchViewModel>(); InitializeComponent();
 
         Loaded += async (_, _) => await ViewModel.EnsureRecentsLoadedAsync();
 

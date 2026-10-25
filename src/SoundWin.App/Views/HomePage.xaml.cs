@@ -13,10 +13,7 @@ public sealed partial class HomePage : Page
 {
     public HomeViewModel ViewModel { get; }
 
-    public HomePage()
-    {
-        InitializeComponent();
-        ViewModel = App.Services.GetRequiredService<HomeViewModel>();
+    public HomePage() { ViewModel = App.Services.GetRequiredService<HomeViewModel>(); InitializeComponent();
 
         Loaded += OnLoaded;
     }

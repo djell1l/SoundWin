@@ -21,7 +21,7 @@
                     <!-- Optional Banner Background Image -->
                     <Image
                         x:Name="BannerHeaderImage"
-                        Source="{x:Bind Vm.User.HighResBannerUrl, Mode=OneWay}"
+                        Source="{x:Bind Vm.User.HighResBannerUrl, Mode=OneWay, FallbackValue='', TargetNullValue=''}" Visibility="{x:Bind Vm.User.HasBannerImage, Mode=OneWay, Converter={StaticResource BooleanVisibilityConverter}}"
                         Stretch="UniformToFill" />
 
                     <!-- Subtle Dark Gradient Overlay for Contrast -->

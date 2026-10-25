@@ -9,10 +9,7 @@ public sealed partial class SettingsPage : Page
 {
     public SettingsViewModel Vm { get; }
 
-    public SettingsPage()
-    {
-        InitializeComponent();
-        Vm = App.Services.GetRequiredService<SettingsViewModel>();
+    public SettingsPage() { Vm = App.Services.GetRequiredService<SettingsViewModel>(); InitializeComponent();
     }
 
     protected override void OnNavigatedTo(NavigationEventArgs e)
