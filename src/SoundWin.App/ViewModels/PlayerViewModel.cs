@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Threading.Tasks;
@@ -229,5 +229,55 @@ public partial class PlayerViewModel : ObservableObject
     partial void OnIsMutedChanged(bool value)
     {
         _player.IsMuted = value;
+    }
+
+    [RelayCommand]
+    public void AddToQueue(Track? track)
+    {
+        var target = track ?? CurrentTrack;
+        if (target != null)
+        {
+            _player.AddToQueue(target);
+        }
+    }
+
+    [RelayCommand]
+    public void PlayNext(Track? track)
+    {
+        var target = track ?? CurrentTrack;
+        if (target != null)
+        {
+            _player.PlayNext(target);
+        }
+    }
+
+    [RelayCommand]
+    public async Task StartTrackStation(Track? track)
+    {
+        var target = track ?? CurrentTrack;
+        if (target == null) return;
+
+        try
+        {
+            var stationTracks = await _apiClient.GetTrackStationAsync(target.Id);
+            if (stationTracks.Count > 0)
+            {
+                var q = new ObservableCollection<Track>(stationTracks);
+                await _player.PlayTrackAsync(stationTracks[0], q, 0);
+            }
+        }
+        catch { }
+    }
+
+    [RelayCommand]
+    public void CopyTrackLink(Track? track)
+    {
+        var target = track ?? CurrentTrack;
+        if (target != null && !string.IsNullOrEmpty(target.PermalinkUrl))
+        {
+            var package = new Windows.ApplicationModel.DataTransfer.DataPackage();
+            package.SetText(target.PermalinkUrl);
+            Windows.ApplicationModel.DataTransfer.Clipboard.SetContent(package);
+        }
     }
 }

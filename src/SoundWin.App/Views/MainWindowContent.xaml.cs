@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -42,14 +42,17 @@ public sealed partial class MainWindowContent : UserControl
                 case "home":
                     ContentFrame.Navigate(typeof(HomePage));
                     break;
+                case "stream":
+                    ContentFrame.Navigate(typeof(StreamPage));
+                    break;
                 case "search":
                     ContentFrame.Navigate(typeof(SearchPage));
                     break;
-                                case "profile":
+                case "profile":
                     ContentFrame.Navigate(typeof(ProfilePage));
                     break;
                 case "library":
-                    ContentFrame.Navigate(typeof(ProfilePage));
+                    ContentFrame.Navigate(typeof(LibraryPage));
                     break;
             }
         }
@@ -66,7 +69,7 @@ public sealed partial class MainWindowContent : UserControl
         if (string.IsNullOrWhiteSpace(args.QueryText)) return;
 
         // Switch to search view and trigger query
-        MainNavView.SelectedItem = MainNavView.MenuItems[1];
+        MainNavView.SelectedItem = MainNavView.MenuItems[2];
         ContentFrame.Navigate(typeof(SearchPage));
         if (ContentFrame.Content is SearchPage searchPage)
         {
@@ -76,7 +79,7 @@ public sealed partial class MainWindowContent : UserControl
 
     private void OnUserAvatarTapped(object sender, Microsoft.UI.Xaml.Input.TappedRoutedEventArgs e)
     {
-        MainNavView.SelectedItem = MainNavView.MenuItems[2];
+        MainNavView.SelectedItem = MainNavView.MenuItems[3];
         ContentFrame.Navigate(typeof(ProfilePage));
     }
 

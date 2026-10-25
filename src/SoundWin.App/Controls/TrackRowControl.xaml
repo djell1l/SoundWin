@@ -12,7 +12,45 @@
         PointerEntered="OnPointerEntered"
         PointerExited="OnPointerExited">
 
-        <Grid ColumnDefinitions="Auto,*,Auto,Auto">
+        <!-- Context Flyout (Right Click Menu) -->
+        <Border.ContextFlyout>
+            <MenuFlyout>
+                <MenuFlyoutItem Text="Lire maintenant" Click="OnPlayClicked">
+                    <MenuFlyoutItem.Icon>
+                        <FontIcon Glyph="&#xE768;" />
+                    </MenuFlyoutItem.Icon>
+                </MenuFlyoutItem>
+                <MenuFlyoutItem Text="Lire ensuite" Click="OnPlayNextClicked">
+                    <MenuFlyoutItem.Icon>
+                        <FontIcon Glyph="&#xE8D6;" />
+                    </MenuFlyoutItem.Icon>
+                </MenuFlyoutItem>
+                <MenuFlyoutItem Text="Ajouter à la file d'attente" Click="OnAddToQueueClicked">
+                    <MenuFlyoutItem.Icon>
+                        <FontIcon Glyph="&#xE90B;" />
+                    </MenuFlyoutItem.Icon>
+                </MenuFlyoutItem>
+                <MenuFlyoutSeparator />
+                <MenuFlyoutItem Text="Lancer la station radio" Click="OnStartRadioStationClicked">
+                    <MenuFlyoutItem.Icon>
+                        <FontIcon Glyph="&#xE753;" />
+                    </MenuFlyoutItem.Icon>
+                </MenuFlyoutItem>
+                <MenuFlyoutItem Text="Ajouter aux coups de cœur" Click="OnToggleLikeClicked">
+                    <MenuFlyoutItem.Icon>
+                        <FontIcon Glyph="&#xEB51;" />
+                    </MenuFlyoutItem.Icon>
+                </MenuFlyoutItem>
+                <MenuFlyoutSeparator />
+                <MenuFlyoutItem Text="Copier le lien SoundCloud" Click="OnCopyLinkClicked">
+                    <MenuFlyoutItem.Icon>
+                        <FontIcon Glyph="&#xE8C8;" />
+                    </MenuFlyoutItem.Icon>
+                </MenuFlyoutItem>
+            </MenuFlyout>
+        </Border.ContextFlyout>
+
+        <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto">
             <!-- Cover Art + Play Overlay -->
             <Grid Grid.Column="0" Width="44" Height="44" Margin="0,0,12,0">
                 <Border CornerRadius="6">
@@ -60,16 +98,28 @@
                 VerticalAlignment="Center"
                 Margin="12,0" />
 
-            <!-- Options / Play Next -->
+            <!-- Like Quick Button -->
             <Button
                 Grid.Column="3"
                 Background="Transparent"
                 BorderThickness="0"
                 Padding="6"
                 VerticalAlignment="Center"
-                Click="OnPlayClicked"
-                ToolTipService.ToolTip="Lire maintenant">
-                <FontIcon Glyph="&#xE768;" FontSize="13" />
+                Click="OnToggleLikeClicked"
+                ToolTipService.ToolTip="J'aime">
+                <FontIcon Glyph="&#xEB51;" FontSize="13" Opacity="0.7" />
+            </Button>
+
+            <!-- Context Menu Button (...) -->
+            <Button
+                Grid.Column="4"
+                Background="Transparent"
+                BorderThickness="0"
+                Padding="6"
+                VerticalAlignment="Center"
+                Click="OnMoreOptionsClicked"
+                ToolTipService.ToolTip="Plus d'actions">
+                <FontIcon Glyph="&#xE712;" FontSize="13" />
             </Button>
         </Grid>
     </Border>

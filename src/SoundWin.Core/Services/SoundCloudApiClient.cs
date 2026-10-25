@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
@@ -534,6 +534,7 @@ public class SoundCloudApiClient
             ArtworkUrl = el.TryGetProperty("artwork_url", out var artProp) ? artProp.GetString() : null,
             WaveformUrl = el.TryGetProperty("waveform_url", out var waveProp) ? waveProp.GetString() : null,
             Genre = el.TryGetProperty("genre", out var genreProp) ? genreProp.GetString() : null,
+            Description = el.TryGetProperty("description", out var descProp) ? descProp.GetString() : null,
             LikesCount = el.TryGetProperty("likes_count", out var likesProp) ? likesProp.GetInt64() : 0,
             PlaybackCount = el.TryGetProperty("playback_count", out var playProp) ? playProp.GetInt64() : 0,
             TrackAuthorization = el.TryGetProperty("track_authorization", out var authProp) ? authProp.GetString() : null
@@ -812,5 +813,194 @@ public class SoundCloudApiClient
         }
 
         return comment;
+    }
+
+    // ==========================================
+    // NUAGE-INSPIRED DISCOVERY & SOCIAL FEATURES
+    // ==========================================
+
+    /// <summary>
+    /// RÃ©cupÃ¨re le flux d'actualitÃ©s (Stream) de l'utilisateur connectÃ© ou gÃ©nÃ©ral.
+    /// </summary>
+    public async Task<List<StreamPost>> GetStreamAsync(int limit = 30, CancellationToken ct = default)
+    {
+        await EnsureInitializedAsync(ct);
+        var url = $"https://api-v2.soundcloud.com/stream?client_id={_clientId}&limit={limit}";
+
+        try
+        {
+            using var request = CreateRequest(HttpMethod.Get, url);
+            using var response = await _http.SendAsync(request, ct);
+            if (!response.IsSuccessStatusCode) return new List<StreamPost>();
+
+            var json = await response.Content.ReadAsStringAsync(ct);
+            using var doc = JsonDocument.Parse(json);
+            var list = new List<StreamPost>();
+
+            if (doc.RootElement.TryGetProperty("collection", out var col))
+            {
+                foreach (var item in col.EnumerateArray())
+                {
+                    var post = new StreamPost();
+                    if (item.TryGetProperty("type", out var typeEl))
+                    {
+                        var tStr = typeEl.GetString() ?? "";
+                        post.IsRepost = tStr.Contains("repost", StringComparison.OrdinalIgnoreCase);
+                        post.Type = tStr.Contains("playlist") ? "playlist" : "track";
+                    }
+
+                    if (item.TryGetProperty("created_at", out var catEl) && catEl.TryGetDateTime(out var dt))
+                    {
+                        post.CreatedAt = dt;
+                    }
+
+                    if (item.TryGetProperty("user", out var userEl))
+                    {
+                        post.User = ParseUser(userEl);
+                    }
+
+                    if (item.TryGetProperty("track", out var trkEl))
+                    {
+                        post.Track = ParseTrack(trkEl);
+                    }
+                    else if (item.TryGetProperty("playlist", out var plEl))
+                    {
+                        post.Playlist = ParsePlaylist(plEl);
+                    }
+
+                    if (post.Track != null || post.Playlist != null)
+                    {
+                        list.Add(post);
+                    }
+                }
+            }
+            return list;
+        }
+        catch
+        {
+            return new List<StreamPost>();
+        }
+    }
+
+    /// <summary>
+    /// Station radio basÃ©e sur un morceau (Track Station).
+    /// </summary>
+    public async Task<List<Track>> GetTrackStationAsync(long trackId, int limit = 25, CancellationToken ct = default)
+    {
+        await EnsureInitializedAsync(ct);
+        var url = $"https://api-v2.soundcloud.com/system-playlists/soundcloud:system-playlists:track-stations:{trackId}?client_id={_clientId}";
+
+        try
+        {
+            using var request = CreateRequest(HttpMethod.Get, url);
+            using var response = await _http.SendAsync(request, ct);
+            if (!response.IsSuccessStatusCode) return new List<Track>();
+
+            var json = await response.Content.ReadAsStringAsync(ct);
+            using var doc = JsonDocument.Parse(json);
+            var pl = ParsePlaylist(doc.RootElement);
+            return pl.Tracks;
+        }
+        catch
+        {
+            return new List<Track>();
+        }
+    }
+
+    /// <summary>
+    /// Station radio basÃ©e sur un artiste (Artist Station).
+    /// </summary>
+    public async Task<List<Track>> GetArtistStationAsync(long artistId, int limit = 25, CancellationToken ct = default)
+    {
+        await EnsureInitializedAsync(ct);
+        var url = $"https://api-v2.soundcloud.com/system-playlists/soundcloud:system-playlists:artist-stations:{artistId}?client_id={_clientId}";
+
+        try
+        {
+            using var request = CreateRequest(HttpMethod.Get, url);
+            using var response = await _http.SendAsync(request, ct);
+            if (!response.IsSuccessStatusCode) return new List<Track>();
+
+            var json = await response.Content.ReadAsStringAsync(ct);
+            using var doc = JsonDocument.Parse(json);
+            var pl = ParsePlaylist(doc.RootElement);
+            return pl.Tracks;
+        }
+        catch
+        {
+            return new List<Track>();
+        }
+    }
+
+    /// <summary>
+    /// Reposter un morceau sur SoundCloud.
+    /// </summary>
+    public async Task<bool> RepostTrackAsync(long trackId, CancellationToken ct = default)
+    {
+        await EnsureInitializedAsync(ct);
+        if (!IsAuthenticated) return false;
+
+        var url = $"https://api-v2.soundcloud.com/me/track_reposts/{trackId}?client_id={_clientId}";
+        try
+        {
+            using var request = CreateRequest(HttpMethod.Put, url);
+            using var response = await _http.SendAsync(request, ct);
+            return response.IsSuccessStatusCode;
+        }
+        catch { return false; }
+    }
+
+    /// <summary>
+    /// Supprimer un repost SoundCloud.
+    /// </summary>
+    public async Task<bool> UnrepostTrackAsync(long trackId, CancellationToken ct = default)
+    {
+        await EnsureInitializedAsync(ct);
+        if (!IsAuthenticated) return false;
+
+        var url = $"https://api-v2.soundcloud.com/me/track_reposts/{trackId}?client_id={_clientId}";
+        try
+        {
+            using var request = CreateRequest(HttpMethod.Delete, url);
+            using var response = await _http.SendAsync(request, ct);
+            return response.IsSuccessStatusCode;
+        }
+        catch { return false; }
+    }
+
+    /// <summary>
+    /// Suggestions de profils Ã  suivre (Who to follow).
+    /// </summary>
+    public async Task<List<User>> GetWhoToFollowAsync(int limit = 12, CancellationToken ct = default)
+    {
+        await EnsureInitializedAsync(ct);
+        var url = $"https://api-v2.soundcloud.com/me/suggested/users/who_to_follow?client_id={_clientId}&limit={limit}";
+
+        try
+        {
+            using var request = CreateRequest(HttpMethod.Get, url);
+            using var response = await _http.SendAsync(request, ct);
+            if (!response.IsSuccessStatusCode) return new List<User>();
+
+            var json = await response.Content.ReadAsStringAsync(ct);
+            using var doc = JsonDocument.Parse(json);
+            var list = new List<User>();
+
+            if (doc.RootElement.TryGetProperty("collection", out var col))
+            {
+                foreach (var item in col.EnumerateArray())
+                {
+                    if (item.TryGetProperty("user", out var uEl))
+                    {
+                        list.Add(ParseUser(uEl));
+                    }
+                }
+            }
+            return list;
+        }
+        catch
+        {
+            return new List<User>();
+        }
     }
 }

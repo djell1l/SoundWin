@@ -18,6 +18,7 @@
 
     <!-- Converters -->
     <converters:StringVisibilityConverter x:Key="StringVisibilityConverter" />
+    <converters:NullToVisibilityConverter x:Key="NullToVisibilityConverter" />
     <converters:BooleanVisibilityConverter x:Key="BooleanVisibilityConverter" />
     <converters:BooleanPlayIconConverter x:Key="BooleanPlayIconConverter" />
     <converters:BooleanHeartConverter x:Key="BooleanHeartConverter" />

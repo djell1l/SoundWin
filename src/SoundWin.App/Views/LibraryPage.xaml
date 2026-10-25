@@ -5,20 +5,22 @@
     xmlns:models="using:SoundWin.Core.Models"
     xmlns:controls="using:SoundWin.App.Controls">
 
-    <ScrollViewer Padding="28,24,28,40">
-        <StackPanel Spacing="24">
+    <ScrollViewer Padding="32,24,32,48">
+        <StackPanel MaxWidth="880" HorizontalAlignment="Left" Spacing="24">
             <!-- NOT LOGGED IN STATE -->
             <Grid
                 x:Name="LoginPromptCard"
                 Padding="32"
                 CornerRadius="12"
                 Background="#18181E"
+                BorderBrush="#25FFFFFF"
+                BorderThickness="1"
                 HorizontalAlignment="Stretch">
                 <StackPanel Spacing="16" MaxWidth="500" HorizontalAlignment="Center" VerticalAlignment="Center">
                     <FontIcon Glyph="&#xE8D7;" FontSize="48" Foreground="{StaticResource SoundCloudOrangeBrush}" HorizontalAlignment="Center" />
                     <TextBlock Text="Connectez-vous à SoundCloud" FontSize="22" FontWeight="Bold" HorizontalAlignment="Center" />
                     <TextBlock
-                        Text="Accédez directement à l'ensemble de votre bibliothèque personnelle : titres likés, playlists sauvegardées et flux d'artistes."
+                        Text="Accédez directement à l'ensemble de votre bibliothèque personnelle : titres likés, playlists sauvegardées et recommandations d'artistes."
                         FontSize="14"
                         Opacity="0.75"
                         TextAlignment="Center"
@@ -46,6 +48,8 @@
                 Padding="24"
                 CornerRadius="12"
                 Background="#18181E"
+                BorderBrush="#25FFFFFF"
+                BorderThickness="1"
                 ColumnDefinitions="Auto,*,Auto">
 
                 <PersonPicture
@@ -74,8 +78,13 @@
 
             <!-- LIKES SECTION -->
             <StackPanel x:Name="LikesSection" Visibility="Collapsed" Spacing="16">
-                <TextBlock Text="Titres Likés" FontSize="20" FontWeight="Bold" />
+                <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                    <FontIcon Glyph="&#xEB52;" FontSize="18" Foreground="{StaticResource SoundCloudOrangeBrush}" />
+                    <TextBlock Text="Titres Likés" FontSize="20" FontWeight="Bold" />
+                </StackPanel>
+                
                 <ProgressBar x:Name="LikesLoadingProgress" IsIndeterminate="True" Visibility="Collapsed" />
+                
                 <ListView
                     x:Name="LikesListView"
                     ItemsSource="{x:Bind ViewModel.LikedTracks, Mode=OneWay}"

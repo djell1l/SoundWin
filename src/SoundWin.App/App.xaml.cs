@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using SoundWin.App.ViewModels;
@@ -74,6 +74,7 @@ public partial class App : Application
         services.AddSingleton<LibraryViewModel>();
         services.AddSingleton<SettingsViewModel>();
         services.AddSingleton<ProfileViewModel>();
+        services.AddSingleton<StreamViewModel>();
     }
 
     protected override void OnLaunched(LaunchActivatedEventArgs args)

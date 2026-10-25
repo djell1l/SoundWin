@@ -18,6 +18,7 @@ public partial class Track : ObservableObject
     public long LikesCount { get; set; }
     public long PlaybackCount { get; set; }
     public string? Genre { get; set; }
+    public string? Description { get; set; }
     public string? PermalinkUrl { get; set; }
     public string? TrackAuthorization { get; set; }
     public List<TrackTranscoding> Transcodings { get; set; } = new();
