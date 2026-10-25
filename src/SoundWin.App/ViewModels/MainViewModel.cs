@@ -53,6 +53,10 @@ public partial class MainViewModel : ObservableObject
     public void RefreshSession()
     {
         var session = _credentials.LoadSession();
+        if (session != null && !string.IsNullOrEmpty(session.OAuthToken))
+        {
+            _apiClient.OAuthToken = session.OAuthToken;
+        }
         UpdateSession(session);
         if (session != null && session.IsAuthenticated)
         {
@@ -66,7 +70,7 @@ public partial class MainViewModel : ObservableObject
         if (session != null && session.IsAuthenticated)
         {
             ActiveUsername = string.IsNullOrWhiteSpace(session.Username) ? "Utilisateur" : session.Username;
-            ActiveUserAvatar = session.AvatarUrl;
+            ActiveUserAvatar = session.AvatarUrl?.Replace("-large.", "-t500x500.");
             IsUserAuthenticated = true;
         }
         else

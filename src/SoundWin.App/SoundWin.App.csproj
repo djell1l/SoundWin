@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
@@ -19,9 +19,9 @@
     <SatelliteResourceLanguages>en-US;fr-FR;fr;en</SatelliteResourceLanguages>
     <Product>SCwin</Product>
     <AssemblyTitle>SCwin</AssemblyTitle>
-    <Version>0.1.0-edge.12</Version>
-    <PackageVersion>0.1.0-edge.12</PackageVersion>
-    <InformationalVersion>0.1.0-edge.12</InformationalVersion>
+    <Version>0.1.0-edge.13</Version>
+    <PackageVersion>0.1.0-edge.13</PackageVersion>
+    <InformationalVersion>0.1.0-edge.13</InformationalVersion>
   </PropertyGroup>
 
   <ItemGroup>

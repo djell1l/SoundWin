@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace SoundWin.Core.Models;
@@ -27,6 +28,10 @@ public partial class Playlist : ObservableObject
         get
         {
             var url = !string.IsNullOrEmpty(ArtworkUrl) ? ArtworkUrl : CalculatedArtworkUrl;
+            if (string.IsNullOrEmpty(url))
+            {
+                url = Tracks.FirstOrDefault(t => !string.IsNullOrEmpty(t.ArtworkUrl))?.ArtworkUrl;
+            }
             if (string.IsNullOrEmpty(url)) return "ms-appx:///Assets/DefaultCover.png";
             return url.Replace("-large.", "-t500x500.");
         }

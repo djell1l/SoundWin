@@ -2,6 +2,7 @@ using System;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Navigation;
 using SoundWin.App.ViewModels;
 using SoundWin.Core.Models;
 
@@ -10,15 +11,30 @@ namespace SoundWin.App.Views;
 public sealed partial class LibraryPage : Page
 {
     public LibraryViewModel ViewModel { get; }
+    private string _pendingTabTag = "all";
 
-    public LibraryPage() { ViewModel = App.Services.GetRequiredService<LibraryViewModel>(); InitializeComponent();
-
+    public LibraryPage()
+    {
+        ViewModel = App.Services.GetRequiredService<LibraryViewModel>();
+        InitializeComponent();
         Loaded += OnLoaded;
+    }
+
+    protected override void OnNavigatedTo(NavigationEventArgs e)
+    {
+        base.OnNavigatedTo(e);
+        if (e.Parameter is string tabTag && !string.IsNullOrWhiteSpace(tabTag))
+        {
+            _pendingTabTag = tabTag;
+            SelectTabByTag(tabTag);
+        }
     }
 
     private async void OnLoaded(object sender, RoutedEventArgs e)
     {
         UpdateUiState();
+        SelectTabByTag(_pendingTabTag);
+
         if (ViewModel.IsAuthenticated)
         {
             LikesLoadingProgress.Visibility = Visibility.Visible;
@@ -27,32 +43,61 @@ public sealed partial class LibraryPage : Page
         }
     }
 
+    private void SelectTabByTag(string tag)
+    {
+        if (LibrarySelectorBar == null) return;
+        foreach (var item in LibrarySelectorBar.Items)
+        {
+            if (string.Equals(item.Tag as string, tag, StringComparison.OrdinalIgnoreCase))
+            {
+                LibrarySelectorBar.SelectedItem = item;
+                break;
+            }
+        }
+        ApplyActiveTabVisibility(tag);
+    }
+
+    private void OnLibraryTabSelectionChanged(SelectorBar sender, SelectorBarSelectionChangedEventArgs args)
+    {
+        if (sender.SelectedItem?.Tag is string tag)
+        {
+            _pendingTabTag = tag;
+            ApplyActiveTabVisibility(tag);
+        }
+    }
+
+    private void ApplyActiveTabVisibility(string tag)
+    {
+        if (!ViewModel.IsAuthenticated)
+        {
+            PlaylistsSection.Visibility = Visibility.Collapsed;
+            LikesSection.Visibility = Visibility.Collapsed;
+            FollowingSection.Visibility = Visibility.Collapsed;
+            HistorySection.Visibility = Visibility.Collapsed;
+            SuggestionsSection.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        PlaylistsSection.Visibility = (tag is "all" or "playlists" or "albums" or "stations") ? Visibility.Visible : Visibility.Collapsed;
+        LikesSection.Visibility = (tag is "all" or "likes") ? Visibility.Visible : Visibility.Collapsed;
+        FollowingSection.Visibility = (tag is "all" or "following") ? Visibility.Visible : Visibility.Collapsed;
+        HistorySection.Visibility = (tag is "all" or "history") ? Visibility.Visible : Visibility.Collapsed;
+        SuggestionsSection.Visibility = (tag is " suggestions" or "suggestions") ? Visibility.Visible : Visibility.Collapsed;
+    }
+
     private void UpdateUiState()
     {
         if (ViewModel.IsAuthenticated && ViewModel.Session != null)
         {
             LoginPromptCard.Visibility = Visibility.Collapsed;
-            UserProfileCard.Visibility = Visibility.Visible;
-            PlaylistsSection.Visibility = Visibility.Visible;
-            LikesSection.Visibility = Visibility.Visible;
-
-            UsernameText.Text = ViewModel.Session.Username;
-            UserAvatar.DisplayName = ViewModel.Session.Username;
-            if (!string.IsNullOrEmpty(ViewModel.Session.AvatarUrl))
-            {
-                try
-                {
-                    UserAvatar.ProfilePicture = new Microsoft.UI.Xaml.Media.Imaging.BitmapImage(new Uri(ViewModel.Session.AvatarUrl));
-                }
-                catch { }
-            }
+            LibraryHeaderBar.Visibility = Visibility.Visible;
+            ApplyActiveTabVisibility(_pendingTabTag);
         }
         else
         {
             LoginPromptCard.Visibility = Visibility.Visible;
-            UserProfileCard.Visibility = Visibility.Collapsed;
-            PlaylistsSection.Visibility = Visibility.Collapsed;
-            LikesSection.Visibility = Visibility.Collapsed;
+            LibraryHeaderBar.Visibility = Visibility.Collapsed;
+            ApplyActiveTabVisibility(_pendingTabTag);
         }
     }
 
@@ -65,6 +110,7 @@ public sealed partial class LibraryPage : Page
             LikesLoadingProgress.Visibility = Visibility.Visible;
             await ViewModel.LoadAsync();
             LikesLoadingProgress.Visibility = Visibility.Collapsed;
+            UpdateUiState();
         };
         loginWin.Activate();
     }
@@ -74,12 +120,6 @@ public sealed partial class LibraryPage : Page
         LikesLoadingProgress.Visibility = Visibility.Visible;
         await ViewModel.LoadAsync();
         LikesLoadingProgress.Visibility = Visibility.Collapsed;
-    }
-
-    private void OnLogoutClick(object sender, RoutedEventArgs e)
-    {
-        ViewModel.Logout();
-        UpdateUiState();
     }
 
     private async void OnCreatePlaylistClick(object sender, RoutedEventArgs e)
@@ -136,6 +176,22 @@ public sealed partial class LibraryPage : Page
         if (e.ClickedItem is Playlist playlist)
         {
             MainWindowContent.Current?.NavigateToPlaylist(playlist);
+        }
+    }
+
+    private void OnArtistCardItemClicked(object sender, ItemClickEventArgs e)
+    {
+        if (e.ClickedItem is User artist && artist.Id > 0)
+        {
+            MainWindowContent.Current?.NavigateToProfile(artist.Id);
+        }
+    }
+
+    private async void OnToggleFollowArtistCardClicked(object sender, RoutedEventArgs e)
+    {
+        if (sender is FrameworkElement { DataContext: User artist })
+        {
+            await ViewModel.ToggleFollowArtistAsync(artist);
         }
     }
 

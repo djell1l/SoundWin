@@ -70,7 +70,7 @@
                                     Click="OnStreamPlaylistClicked">
                                     <Grid ColumnDefinitions="Auto,*,Auto">
                                         <Border Grid.Column="0" Width="56" Height="56" CornerRadius="6" Margin="0,0,14,0">
-                                            <Image Source="{x:Bind Playlist.DisplayArtworkUrl}" Stretch="UniformToFill" />
+                                            <Image Source="{x:Bind Playlist.DisplayArtworkUrl, Converter={StaticResource StringToImageSourceConverter}}" Stretch="UniformToFill" />
                                         </Border>
                                         <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="4">
                                             <TextBlock Text="{x:Bind Playlist.Title}" FontWeight="SemiBold" FontSize="14" />

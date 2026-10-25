@@ -18,7 +18,7 @@ public partial class ProfileViewModel : ObservableObject
     private readonly AudioPlayerService _player;
 
     [ObservableProperty]
-    private User _user = new() { Username = "Utilisateur" };
+    private User _user = new();
 
     [ObservableProperty]
     private bool _isOwnProfile;
@@ -190,13 +190,14 @@ public partial class ProfileViewModel : ObservableObject
 
             IsOwnProfile = session != null && session.IsAuthenticated && session.UserId == userId;
 
-            if (IsOwnProfile && !string.IsNullOrEmpty(session?.Username))
+            if (IsOwnProfile && session != null && !string.IsNullOrEmpty(session.Username))
             {
-                User.Username = session.Username;
-                if (!string.IsNullOrEmpty(session.AvatarUrl))
+                User = new User
                 {
-                    User.AvatarUrl = session.AvatarUrl;
-                }
+                    Id = session.UserId,
+                    Username = session.Username,
+                    AvatarUrl = session.AvatarUrl
+                };
             }
 
             try

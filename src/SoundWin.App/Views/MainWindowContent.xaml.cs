@@ -105,10 +105,10 @@ public sealed partial class MainWindowContent : UserControl
         ContentFrame.Navigate(typeof(HomePage));
     }
 
-    public void NavigateToLibrary()
+    public void NavigateToLibrary(string? tabTag = null)
     {
         MainNavView.SelectedItem = MainNavView.MenuItems[4];
-        ContentFrame.Navigate(typeof(LibraryPage));
+        ContentFrame.Navigate(typeof(LibraryPage), tabTag);
     }
 
     private void OnNavSelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
@@ -169,20 +169,27 @@ public sealed partial class MainWindowContent : UserControl
 
     private void OnMenuLikesClicked(object sender, RoutedEventArgs e)
     {
-        MainNavView.SelectedItem = MainNavView.MenuItems[4];
-        ContentFrame.Navigate(typeof(LibraryPage));
+        NavigateToLibrary("likes");
     }
 
     private void OnMenuPlaylistsClicked(object sender, RoutedEventArgs e)
     {
-        MainNavView.SelectedItem = MainNavView.MenuItems[4];
-        ContentFrame.Navigate(typeof(LibraryPage));
+        NavigateToLibrary("playlists");
+    }
+
+    private void OnMenuStationsClicked(object sender, RoutedEventArgs e)
+    {
+        NavigateToLibrary("stations");
     }
 
     private void OnMenuFollowingsClicked(object sender, RoutedEventArgs e)
     {
-        MainNavView.SelectedItem = MainNavView.MenuItems[3];
-        ContentFrame.Navigate(typeof(ProfilePage));
+        NavigateToLibrary("following");
+    }
+
+    private void OnMenuSuggestionsClicked(object sender, RoutedEventArgs e)
+    {
+        NavigateToLibrary("suggestions");
     }
 
     private void OnMenuSettingsClicked(object sender, RoutedEventArgs e)

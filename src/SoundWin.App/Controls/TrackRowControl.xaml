@@ -81,7 +81,7 @@
             <Grid Grid.Column="0" Width="44" Height="44" Margin="0,0,12,0">
                 <Border CornerRadius="6" Background="#1E1E26">
                     <Image
-                        Source="{x:Bind Track.HighResArtworkUrl, Mode=OneWay}"
+                        Source="{x:Bind Track.HighResArtworkUrl, Mode=OneWay, Converter={StaticResource StringToImageSourceConverter}}"
                         Stretch="UniformToFill" />
                 </Border>
                 <Button
@@ -97,7 +97,7 @@
                     Background="#D9000000"
                     Opacity="0"
                     Click="OnPlayClicked">
-                    <SymbolIcon Symbol="Play" Foreground="White" />
+                    <FontIcon Glyph="&#xF5B0;" FontSize="13" Margin="2,0,0,0" Foreground="White" />
                 </Button>
             </Grid>
 

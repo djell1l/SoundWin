@@ -1,8 +1,8 @@
-# SCwin
+# SoundWin (maintenant SCwin)
 
 Running an entire Chromium browser in the background just to stream a few audio tracks on Windows is an insult to your hardware. If Apple gets to flex its sleek Swift and SwiftUI native ecosystem with apps like Nuage, why on earth shouldn't Windows get the exact same first-class treatment? Respect your ecosystem.
 
-SCwin is the world's first 100% native SoundCloud client engineered from scratch in **C# (.NET 8)** and **WinUI 3**. No Electron. No CEF. No disguised web browser quietly devouring half a gigabyte of your RAM just to play an MP3. Either way, you're welcome.
+**SCwin** (anciennement **SoundWin**) is the world's first 100% native SoundCloud client engineered from scratch in **C# (.NET 8)** and **WinUI 3**. No Electron. No CEF. No disguised web browser quietly devouring half a gigabyte of your RAM just to play an MP3. Either way, you're welcome.
 
 ---
 

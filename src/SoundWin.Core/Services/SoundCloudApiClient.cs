@@ -748,6 +748,39 @@ public class SoundCloudApiClient
                     list.Add(ParsePlaylist(item));
                 }
             }
+
+            // Hydrate first 5 tracks for playlists that only returned stub TrackIds (gives cover art + preview tracks)
+            var stubIds = list
+                .Where(p => p.Tracks.Count == 0 && p.TrackIds.Count > 0)
+                .SelectMany(p => p.TrackIds.Take(5))
+                .Distinct()
+                .Take(50)
+                .ToList();
+
+            if (stubIds.Count > 0)
+            {
+                try
+                {
+                    var hydrated = await GetTracksByIdsAsync(stubIds, ct);
+                    var map = hydrated.ToDictionary(t => t.Id, t => t);
+                    foreach (var pl in list.Where(p => p.Tracks.Count == 0 && p.TrackIds.Count > 0))
+                    {
+                        foreach (var tid in pl.TrackIds.Take(5))
+                        {
+                            if (map.TryGetValue(tid, out var trk))
+                            {
+                                pl.Tracks.Add(trk);
+                            }
+                        }
+                        if (string.IsNullOrEmpty(pl.ArtworkUrl) && string.IsNullOrEmpty(pl.CalculatedArtworkUrl))
+                        {
+                            pl.CalculatedArtworkUrl = pl.Tracks.FirstOrDefault(t => !string.IsNullOrEmpty(t.ArtworkUrl))?.ArtworkUrl;
+                        }
+                    }
+                }
+                catch { }
+            }
+
             return list;
         }
         catch
