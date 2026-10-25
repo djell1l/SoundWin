@@ -33,6 +33,26 @@
 
             <!-- Window Caption Controls Area (reserved) -->
             <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Spacing="8" Margin="0,0,140,0">
+                <!-- Discord Quick Button -->
+                <Button
+                    x:Name="TitleDiscordBtn"
+                    Background="Transparent"
+                    BorderThickness="0"
+                    Padding="6"
+                    CornerRadius="6"
+                    Click="OnTitleDiscordClicked"
+                    ToolTipService.ToolTip="{x:Bind SettingsVm.DiscordStatusTooltip, Mode=OneWay}">
+                    <Grid Width="22" Height="22">
+                        <FontIcon Glyph="&#xEBD3;" FontSize="15" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        <Ellipse
+                            Width="7"
+                            Height="7"
+                            HorizontalAlignment="Right"
+                            VerticalAlignment="Bottom"
+                            Fill="{x:Bind SettingsVm.DiscordStatusBadgeColor, Mode=OneWay, Converter={StaticResource StatusColorBrushConverter}}" />
+                    </Grid>
+                </Button>
+
                 <PersonPicture x:Name="TitleUserAvatar" Width="28" Height="28" Tapped="OnUserAvatarTapped" />
             </StackPanel>
         </Grid>
@@ -43,7 +63,7 @@
             Grid.Row="1"
             PaneDisplayMode="Left"
             IsBackButtonVisible="Collapsed"
-            IsSettingsVisible="False"
+            IsSettingsVisible="True"
             SelectionChanged="OnNavSelectionChanged">
 
             <NavigationView.MenuItems>

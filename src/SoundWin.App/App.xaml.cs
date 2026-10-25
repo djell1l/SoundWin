@@ -59,6 +59,7 @@ public partial class App : Application
     private static void ConfigureServices(IServiceCollection services)
     {
         // Core Services
+        services.AddSingleton<SettingsService>();
         services.AddSingleton<SoundCloudApiClient>();
         services.AddSingleton<AudioPlayerService>();
         services.AddSingleton<DiscordRpcService>();
@@ -71,6 +72,7 @@ public partial class App : Application
         services.AddSingleton<HomeViewModel>();
         services.AddSingleton<SearchViewModel>();
         services.AddSingleton<LibraryViewModel>();
+        services.AddSingleton<SettingsViewModel>();
     }
 
     protected override void OnLaunched(LaunchActivatedEventArgs args)

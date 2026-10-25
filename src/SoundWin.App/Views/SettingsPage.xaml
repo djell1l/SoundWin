@@ -1,0 +1,262 @@
+<Page
+    x:Class="SoundWin.App.Views.SettingsPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <ScrollViewer Padding="32,28,32,48">
+        <StackPanel MaxWidth="840" HorizontalAlignment="Left" Spacing="24">
+            <!-- PAGE TITLE -->
+            <StackPanel Spacing="6" Margin="0,0,0,8">
+                <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                    <FontIcon Glyph="&#xE713;" FontSize="24" Foreground="{StaticResource SoundCloudOrangeBrush}" />
+                    <TextBlock Text="Paramètres" FontSize="26" FontWeight="Bold" />
+                </StackPanel>
+                <TextBlock
+                    Text="Configurez vos intégrations, Discord Rich Presence et les options de lecture de SoundWin."
+                    FontSize="13"
+                    Opacity="0.7" />
+            </StackPanel>
+
+            <!-- CARD 1: DISCORD RICH PRESENCE -->
+            <Border
+                Background="#18181E"
+                BorderBrush="#25FFFFFF"
+                BorderThickness="1"
+                CornerRadius="12"
+                Padding="24">
+                <StackPanel Spacing="20">
+                    <!-- Top Row: Icon, Title, Status Badge, Master Toggle -->
+                    <Grid ColumnDefinitions="Auto,*,Auto,Auto" VerticalAlignment="Center">
+                        <!-- Discord Icon Circle -->
+                        <Border
+                            Grid.Column="0"
+                            Width="44"
+                            Height="44"
+                            CornerRadius="22"
+                            Background="#255865F2"
+                            Margin="0,0,16,0">
+                            <FontIcon Glyph="&#xEBD3;" FontSize="20" Foreground="#5865F2" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+
+                        <!-- Title & Description -->
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="3">
+                            <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                                <TextBlock Text="Discord Rich Presence" FontSize="16" FontWeight="SemiBold" />
+                                <!-- Live Status Badge Pill -->
+                                <Border
+                                    CornerRadius="10"
+                                    Padding="8,2"
+                                    Background="#20FFFFFF">
+                                    <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                                        <Ellipse
+                                            Width="8"
+                                            Height="8"
+                                            Fill="{x:Bind Vm.DiscordStatusBadgeColor, Mode=OneWay, Converter={StaticResource StatusColorBrushConverter}}" />
+                                        <TextBlock
+                                            Text="{x:Bind Vm.DiscordStatusBadgeText, Mode=OneWay}"
+                                            FontSize="11"
+                                            FontWeight="Medium"
+                                            Foreground="{x:Bind Vm.DiscordStatusBadgeColor, Mode=OneWay, Converter={StaticResource StatusColorBrushConverter}}" />
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+                            <TextBlock
+                                Text="Affiche le titre SoundCloud en cours d'écoute, l'artiste, la pochette et la progression sur votre profil Discord."
+                                FontSize="12"
+                                Opacity="0.65"
+                                TextWrapping="Wrap" />
+                        </StackPanel>
+
+                        <!-- Master Toggle Switch -->
+                        <ToggleSwitch
+                            Grid.Column="3"
+                            IsOn="{x:Bind Vm.IsDiscordRpcEnabled, Mode=TwoWay}"
+                            OnContent="Activé"
+                            OffContent="Désactivé"
+                            Margin="16,0,0,0" />
+                    </Grid>
+
+                    <!-- Status Info Notification (when waiting or error) -->
+                    <InfoBar
+                        IsOpen="{x:Bind Vm.IsDiscordRpcEnabled, Mode=OneWay}"
+                        Severity="{x:Bind Vm.IsDiscordConnected, Mode=OneWay, Converter={StaticResource BooleanVisibilityConverter}, FallbackValue='Informational'}"
+                        IsClosable="False"
+                        Message="{x:Bind Vm.DiscordStatusMessage, Mode=OneWay}"
+                        Margin="0,0,0,4" />
+
+                    <!-- Indented Detailed RPC Settings (visible only when RPC is enabled) -->
+                    <StackPanel
+                        Spacing="16"
+                        Margin="60,0,0,0"
+                        Visibility="{x:Bind Vm.IsDiscordRpcEnabled, Mode=OneWay, Converter={StaticResource BooleanVisibilityConverter}}">
+
+                        <MenuFlyoutSeparator Margin="0,0,0,8" />
+
+                        <!-- Cover Art Toggle -->
+                        <Grid ColumnDefinitions="*,Auto" VerticalAlignment="Center">
+                            <StackPanel Spacing="2">
+                                <TextBlock Text="Pochette d'album haute résolution" FontSize="13" FontWeight="Medium" />
+                                <TextBlock Text="Transmet l'artwork original (500x500 px) de SoundCloud sur votre profil Discord." FontSize="11" Opacity="0.6" />
+                            </StackPanel>
+                            <ToggleSwitch
+                                Grid.Column="1"
+                                IsOn="{x:Bind Vm.DiscordRpcShowCoverArt, Mode=TwoWay}"
+                                OnContent="Oui"
+                                OffContent="Non" />
+                        </Grid>
+
+                        <!-- Button Toggle -->
+                        <Grid ColumnDefinitions="*,Auto" VerticalAlignment="Center">
+                            <StackPanel Spacing="2">
+                                <TextBlock Text="Bouton d'écoute directe" FontSize="13" FontWeight="Medium" />
+                                <TextBlock Text="Ajoute un bouton 'Écouter sur SoundCloud' permettant à vos amis d'ouvrir le morceau." FontSize="11" Opacity="0.6" />
+                            </StackPanel>
+                            <ToggleSwitch
+                                Grid.Column="1"
+                                IsOn="{x:Bind Vm.DiscordRpcShowButtons, Mode=TwoWay}"
+                                OnContent="Oui"
+                                OffContent="Non" />
+                        </Grid>
+
+                        <!-- Show Paused Toggle -->
+                        <Grid ColumnDefinitions="*,Auto" VerticalAlignment="Center">
+                            <StackPanel Spacing="2">
+                                <TextBlock Text="Afficher lors de la mise en pause" FontSize="13" FontWeight="Medium" />
+                                <TextBlock Text="Garde le morceau affiché avec la mention 'En pause' au lieu de masquer l'activité." FontSize="11" Opacity="0.6" />
+                            </StackPanel>
+                            <ToggleSwitch
+                                Grid.Column="1"
+                                IsOn="{x:Bind Vm.DiscordRpcShowPaused, Mode=TwoWay}"
+                                OnContent="Oui"
+                                OffContent="Non" />
+                        </Grid>
+
+                        <!-- Discord Client ID (Developer / Custom) -->
+                        <StackPanel Spacing="8" Margin="0,8,0,0">
+                            <TextBlock Text="Identifiant d'application Discord (Client ID)" FontSize="13" FontWeight="Medium" />
+                            <TextBlock
+                                Text="Par défaut, SoundWin utilise son application officielle. Vous pouvez spécifier votre propre Discord Application ID si souhaité."
+                                FontSize="11"
+                                Opacity="0.6" />
+                            <Grid ColumnDefinitions="*,Auto" Margin="0,4,0,0">
+                                <TextBox
+                                    Grid.Column="0"
+                                    Text="{x:Bind Vm.DiscordRpcClientId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                    PlaceholderText="Ex: 1296534887309971556"
+                                    FontFamily="Consolas, Segoe UI"
+                                    Height="36" />
+                                <Button
+                                    Grid.Column="1"
+                                    Margin="8,0,0,0"
+                                    Height="36"
+                                    Content="Rétablir par défaut"
+                                    Command="{x:Bind Vm.ResetDiscordClientIdCommand}" />
+                            </Grid>
+                        </StackPanel>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- CARD 2: JAY ECOSYSTEM (DISWIN INTEGRATION) -->
+            <Border
+                Background="#18181E"
+                BorderBrush="#25FFFFFF"
+                BorderThickness="1"
+                CornerRadius="12"
+                Padding="24">
+                <Grid ColumnDefinitions="Auto,*,Auto" VerticalAlignment="Center">
+                    <Border
+                        Grid.Column="0"
+                        Width="44"
+                        Height="44"
+                        CornerRadius="22"
+                        Background="#25FF5500"
+                        Margin="0,0,16,0">
+                        <FontIcon Glyph="&#xE753;" FontSize="20" Foreground="{StaticResource SoundCloudOrangeBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="3">
+                        <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                            <TextBlock Text="Écosystème Jay (Passerelle Diswin)" FontSize="16" FontWeight="SemiBold" />
+                            <Border Background="#25FF5500" CornerRadius="4" Padding="6,2">
+                                <TextBlock Text="ACTIF" FontSize="10" FontWeight="Bold" Foreground="{StaticResource SoundCloudOrangeBrush}" />
+                            </Border>
+                        </StackPanel>
+                        <TextBlock
+                            Text="Permet à Diswin d'afficher un mini-lecteur intégré synchronisé et de contrôler la lecture (Play, Pause, Suivant, Précédent)."
+                            FontSize="12"
+                            Opacity="0.65"
+                            TextWrapping="Wrap" />
+                    </StackPanel>
+                    <ToggleSwitch
+                        Grid.Column="2"
+                        IsOn="{x:Bind Vm.IsBridgeEnabled, Mode=TwoWay}"
+                        OnContent="Activé"
+                        OffContent="Désactivé"
+                        Margin="16,0,0,0" />
+                </Grid>
+            </Border>
+
+            <!-- CARD 3: SOUNDCLOUD ACCOUNT -->
+            <Border
+                Background="#18181E"
+                BorderBrush="#25FFFFFF"
+                BorderThickness="1"
+                CornerRadius="12"
+                Padding="24">
+                <Grid ColumnDefinitions="Auto,*,Auto" VerticalAlignment="Center">
+                    <Border
+                        Grid.Column="0"
+                        Width="44"
+                        Height="44"
+                        CornerRadius="22"
+                        Background="#20FFFFFF"
+                        Margin="0,0,16,0">
+                        <FontIcon Glyph="&#xE77B;" FontSize="20" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="3">
+                        <TextBlock Text="Compte SoundCloud" FontSize="16" FontWeight="SemiBold" />
+                        <TextBlock
+                            Text="{x:Bind Vm.Username, Mode=OneWay}"
+                            FontSize="13"
+                            Foreground="{StaticResource SoundCloudOrangeBrush}"
+                            FontWeight="Medium" />
+                    </StackPanel>
+                    <Button
+                        Grid.Column="2"
+                        Content="Déconnexion"
+                        Visibility="{x:Bind Vm.IsUserLoggedIn, Mode=OneWay, Converter={StaticResource BooleanVisibilityConverter}}"
+                        Command="{x:Bind Vm.LogoutCommand}" />
+                </Grid>
+            </Border>
+
+            <!-- CARD 4: ABOUT -->
+            <Border
+                Background="#18181E"
+                BorderBrush="#25FFFFFF"
+                BorderThickness="1"
+                CornerRadius="12"
+                Padding="24">
+                <StackPanel Spacing="10">
+                    <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                        <Image Source="ms-appx:///Assets/Square44x44Logo.png" Width="28" Height="28" />
+                        <TextBlock Text="SoundWin Edge" FontSize="16" FontWeight="Bold" />
+                        <Border Background="#20FFFFFF" CornerRadius="4" Padding="6,2">
+                            <TextBlock Text="v0.1.0-edge.1" FontSize="10" FontWeight="SemiBold" Opacity="0.8" />
+                        </Border>
+                    </StackPanel>
+                    <TextBlock
+                        Text="Client SoundCloud moderne et ultraléger pour Windows 10 &amp; 11, conçu avec WinUI 3, C# et l'écosystème Jay."
+                        FontSize="12"
+                        Opacity="0.7" />
+                    <TextBlock
+                        Text="Intégration Discord Rich Presence avec support pochette haute résolution et contrôles distants."
+                        FontSize="12"
+                        Opacity="0.7" />
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</Page>

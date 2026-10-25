@@ -10,6 +10,7 @@ public sealed partial class MainWindowContent : UserControl
 {
     public PlayerViewModel PlayerVm { get; }
     public MainViewModel MainVm { get; }
+    public SettingsViewModel SettingsVm { get; }
 
     public FrameworkElement TitleBarElement => AppTitleBar;
 
@@ -19,6 +20,7 @@ public sealed partial class MainWindowContent : UserControl
 
         PlayerVm = App.Services.GetRequiredService<PlayerViewModel>();
         MainVm = App.Services.GetRequiredService<MainViewModel>();
+        SettingsVm = App.Services.GetRequiredService<SettingsViewModel>();
 
         // Default page: Home
         MainNavView.SelectedItem = MainNavView.MenuItems[0];
@@ -27,6 +29,12 @@ public sealed partial class MainWindowContent : UserControl
 
     private void OnNavSelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
     {
+        if (args.IsSettingsSelected)
+        {
+            ContentFrame.Navigate(typeof(SettingsPage));
+            return;
+        }
+
         if (args.SelectedItem is NavigationViewItem item && item.Tag is string tag)
         {
             switch (tag)
@@ -42,6 +50,12 @@ public sealed partial class MainWindowContent : UserControl
                     break;
             }
         }
+    }
+
+    private void OnTitleDiscordClicked(object sender, RoutedEventArgs e)
+    {
+        MainNavView.SelectedItem = MainNavView.SettingsItem;
+        ContentFrame.Navigate(typeof(SettingsPage));
     }
 
     private void OnTitleSearchSubmitted(AutoSuggestBox sender, AutoSuggestBoxQuerySubmittedEventArgs args)

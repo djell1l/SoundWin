@@ -135,6 +135,7 @@ public partial class PlayerViewModel : ObservableObject
     public void SeekProgress(double ratio)
     {
         _player.SeekProgress(ratio);
+        _ = _rpc.UpdatePresenceAsync(CurrentTrack, IsPlaying, Position, Duration);
     }
 
     [RelayCommand]
