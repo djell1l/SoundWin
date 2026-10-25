@@ -104,3 +104,23 @@ public class StatusColorBrushConverter : IValueConverter
     public object ConvertBack(object value, Type targetType, object parameter, string language) => throw new NotImplementedException();
 }
 
+public class StringToImageSourceConverter : IValueConverter
+{
+    public object? Convert(object value, Type targetType, object parameter, string language)
+    {
+        if (value is string url && !string.IsNullOrWhiteSpace(url))
+        {
+            try
+            {
+                if (Uri.TryCreate(url, UriKind.Absolute, out var uri))
+                {
+                    return new Microsoft.UI.Xaml.Media.Imaging.BitmapImage(uri);
+                }
+            }
+            catch { }
+        }
+        return null;
+    }
+
+    public object ConvertBack(object value, Type targetType, object parameter, string language) => throw new NotImplementedException();
+}

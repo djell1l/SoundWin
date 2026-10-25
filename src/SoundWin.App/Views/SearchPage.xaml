@@ -1,4 +1,4 @@
-<Page
+﻿<Page
     x:Class="SoundWin.App.Views.SearchPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -220,7 +220,7 @@
                             <Grid Padding="12,10" ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="16">
                                 <PersonPicture
                                     Grid.Column="0"
-                                    ProfilePicture="{x:Bind HighResAvatarUrl}"
+                                    ProfilePicture="{x:Bind HighResAvatarUrl, Converter={StaticResource StringToImageSourceConverter}}"
                                     DisplayName="{x:Bind Username}"
                                     Width="52"
                                     Height="52" />

@@ -19,9 +19,9 @@
     <SatelliteResourceLanguages>en-US;fr-FR;fr;en</SatelliteResourceLanguages>
     <Product>SCwin</Product>
     <AssemblyTitle>SCwin</AssemblyTitle>
-    <Version>0.1.0-edge.9</Version>
-    <PackageVersion>0.1.0-edge.9</PackageVersion>
-    <InformationalVersion>0.1.0-edge.9</InformationalVersion>
+    <Version>0.1.0-edge.11</Version>
+    <PackageVersion>0.1.0-edge.11</PackageVersion>
+    <InformationalVersion>0.1.0-edge.11</InformationalVersion>
   </PropertyGroup>
 
   <ItemGroup>

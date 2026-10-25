@@ -1,4 +1,4 @@
-<UserControl
+﻿<UserControl
     x:Class="SoundWin.App.Views.MainWindowContent"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -64,7 +64,7 @@
                         x:Name="TitleUserAvatar"
                         Width="30"
                         Height="30"
-                        ProfilePicture="{x:Bind MainVm.ActiveUserAvatar, Mode=OneWay}"
+                        ProfilePicture="{x:Bind MainVm.ActiveUserAvatar, Mode=OneWay, Converter={StaticResource StringToImageSourceConverter}}"
                         DisplayName="{x:Bind MainVm.ActiveUsername, Mode=OneWay}" />
                     <Button.Flyout>
                         <MenuFlyout Placement="BottomEdgeAlignedRight">
@@ -143,7 +143,28 @@
                 </NavigationViewItem>
             </NavigationView.MenuItems>
 
-            <Frame x:Name="ContentFrame" />
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <InfoBar
+                    x:Name="UpdateInfoBar"
+                    Grid.Row="0"
+                    IsOpen="{x:Bind MainVm.HasUpdateBanner, Mode=TwoWay}"
+                    Severity="Informational"
+                    Title="Mise à jour disponible"
+                    Message="{x:Bind MainVm.UpdateBannerMessage, Mode=OneWay}"
+                    IsClosable="True"
+                    Margin="16,8,16,8">
+                    <InfoBar.ActionButton>
+                        <Button Content="Télécharger" Click="OnDownloadUpdateClicked" />
+                    </InfoBar.ActionButton>
+                </InfoBar>
+
+                <Frame x:Name="ContentFrame" Grid.Row="1" />
+            </Grid>
         </NavigationView>
 
         <!-- BOTTOM PERSISTENT PLAYER BAR -->
@@ -172,7 +193,7 @@
                             TextTrimming="CharacterEllipsis"
                             MaxLines="1" />
                         <TextBlock
-                            Text="{x:Bind PlayerVm.CurrentTrack.Artist, Mode=OneWay, FallbackValue='SoundWin'}"
+                            Text="{x:Bind PlayerVm.CurrentTrack.Artist, Mode=OneWay, FallbackValue='SCwin'}"
                             FontSize="11"
                             Opacity="0.65"
                             TextTrimming="CharacterEllipsis"
@@ -407,7 +428,7 @@
                                                             Width="32"
                                                             Height="32"
                                                             VerticalAlignment="Top"
-                                                            ProfilePicture="{x:Bind HighResAvatarUrl}"
+                                                            ProfilePicture="{x:Bind HighResAvatarUrl, Converter={StaticResource StringToImageSourceConverter}}"
                                                             DisplayName="{x:Bind Username}" />
                                                         <StackPanel Grid.Column="1" Spacing="3">
                                                             <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">

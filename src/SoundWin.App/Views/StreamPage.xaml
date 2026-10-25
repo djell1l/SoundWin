@@ -45,7 +45,7 @@
                                 <!-- Post Author & Action Tag -->
                                 <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
                                     <PersonPicture
-                                        ProfilePicture="{x:Bind User.HighResAvatarUrl}"
+                                        ProfilePicture="{x:Bind User.HighResAvatarUrl, Converter={StaticResource StringToImageSourceConverter}}"
                                         DisplayName="{x:Bind User.Username}"
                                         Width="28"
                                         Height="28" />

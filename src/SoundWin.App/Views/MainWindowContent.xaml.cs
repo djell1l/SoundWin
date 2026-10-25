@@ -139,6 +139,22 @@ public sealed partial class MainWindowContent : UserControl
         ContentFrame.Navigate(typeof(HomePage));
     }
 
+    private void OnDownloadUpdateClicked(object sender, RoutedEventArgs e)
+    {
+        if (!string.IsNullOrEmpty(MainVm.UpdateBannerUrl))
+        {
+            try
+            {
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = MainVm.UpdateBannerUrl,
+                    UseShellExecute = true
+                });
+            }
+            catch { }
+        }
+    }
+
     private void OnPlayPauseClicked(object sender, RoutedEventArgs e)
     {
         PlayerVm.TogglePlayPause();

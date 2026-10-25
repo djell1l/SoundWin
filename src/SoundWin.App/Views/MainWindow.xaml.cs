@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 using System.Runtime.InteropServices;
 using Microsoft.Extensions.DependencyInjection;
@@ -19,10 +19,8 @@ public sealed partial class MainWindow : Window
     private AppWindow? _appWindow;
     private bool _isRealExit;
 
-    private const int GWLP_WNDPROC = -4;
-    private delegate IntPtr WNDPROC(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam);
-    private WNDPROC? _newWndProc;
-    private IntPtr _oldWndProc = IntPtr.Zero;
+    private delegate IntPtr SUBCLASSPROC(IntPtr hWnd, uint uMsg, IntPtr wParam, IntPtr lParam, UIntPtr uIdSubclass, UIntPtr dwRefData);
+    private SUBCLASSPROC? _subclassDelegate;
 
     [StructLayout(LayoutKind.Sequential)]
     private struct POINT { public int X; public int Y; }
@@ -54,19 +52,14 @@ public sealed partial class MainWindow : Window
     [DllImport("user32.dll")]
     private static extern IntPtr SendMessageW(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam);
 
-    [DllImport("user32.dll", EntryPoint = "SetWindowLongPtrW")]
-    private static extern IntPtr SetWindowLongPtr64(IntPtr hWnd, int nIndex, IntPtr dwNewLong);
+    [DllImport("comctl32.dll")]
+    private static extern bool SetWindowSubclass(IntPtr hWnd, SUBCLASSPROC pfnSubclass, UIntPtr uIdSubclass, UIntPtr dwRefData);
 
-    [DllImport("user32.dll", EntryPoint = "SetWindowLongW")]
-    private static extern IntPtr SetWindowLong32(IntPtr hWnd, int nIndex, IntPtr dwNewLong);
+    [DllImport("comctl32.dll")]
+    private static extern IntPtr DefSubclassProc(IntPtr hWnd, uint uMsg, IntPtr wParam, IntPtr lParam);
 
-    private static IntPtr SetWindowLongPtr(IntPtr hWnd, int nIndex, IntPtr dwNewLong)
-    {
-        return IntPtr.Size == 8 ? SetWindowLongPtr64(hWnd, nIndex, dwNewLong) : SetWindowLong32(hWnd, nIndex, dwNewLong);
-    }
-
-    [DllImport("user32.dll")]
-    private static extern IntPtr CallWindowProc(IntPtr lpPrevWndFunc, IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam);
+    [DllImport("comctl32.dll")]
+    private static extern bool RemoveWindowSubclass(IntPtr hWnd, SUBCLASSPROC pfnSubclass, UIntPtr uIdSubclass);
 
     public MainWindow()
     {
@@ -120,14 +113,14 @@ public sealed partial class MainWindow : Window
             };
         }
 
-        // Subclass window to receive TrayIcon callbacks
-        _newWndProc = new WNDPROC(CustomWndProc);
-        _oldWndProc = SetWindowLongPtr(_hWnd, GWLP_WNDPROC, Marshal.GetFunctionPointerForDelegate(_newWndProc));
+        // Subclass window safely using comctl32 SetWindowSubclass to receive TrayIcon callbacks
+        _subclassDelegate = new SUBCLASSPROC(SubclassProc);
+        SetWindowSubclass(_hWnd, _subclassDelegate, new UIntPtr(101), UIntPtr.Zero);
     }
 
-    private IntPtr CustomWndProc(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam)
+    private IntPtr SubclassProc(IntPtr hWnd, uint uMsg, IntPtr wParam, IntPtr lParam, UIntPtr uIdSubclass, UIntPtr dwRefData)
     {
-        if (msg == TrayIconService.WM_TRAYICON)
+        if (uMsg == TrayIconService.WM_TRAYICON)
         {
             int action = (int)lParam & 0xFFFF;
             if (action == TrayIconService.WM_LBUTTONUP || action == 0x0203 /* WM_LBUTTONDBLCLK */)
@@ -138,8 +131,9 @@ public sealed partial class MainWindow : Window
             {
                 DispatcherQueue.TryEnqueue(ShowTrayContextMenu);
             }
+            return IntPtr.Zero;
         }
-        return CallWindowProc(_oldWndProc, hWnd, msg, wParam, lParam);
+        return DefSubclassProc(hWnd, uMsg, wParam, lParam);
     }
 
     private void ShowTrayContextMenu()
@@ -203,6 +197,10 @@ public sealed partial class MainWindow : Window
     {
         _isRealExit = true;
         SaveCurrentPlayerState();
+        if (_subclassDelegate != null)
+        {
+            RemoveWindowSubclass(_hWnd, _subclassDelegate, new UIntPtr(101));
+        }
         TrayIconService.Remove();
         Close();
     }

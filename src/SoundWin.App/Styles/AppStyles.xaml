@@ -26,4 +26,5 @@
     <converters:BooleanOpacityConverter x:Key="BooleanOpacityConverter" />
     <converters:InvertedBooleanVisibilityConverter x:Key="InvertedBooleanVisibilityConverter" />
     <converters:StatusColorBrushConverter x:Key="StatusColorBrushConverter" />
+    <converters:StringToImageSourceConverter x:Key="StringToImageSourceConverter" />
 </ResourceDictionary>

@@ -27,11 +27,27 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty]
     private bool _isUserAuthenticated;
 
+    [ObservableProperty]
+    private bool _hasUpdateBanner;
+
+    [ObservableProperty]
+    private string _updateBannerMessage = string.Empty;
+
+    [ObservableProperty]
+    private string _updateBannerUrl = string.Empty;
+
     public MainViewModel(CredentialService credentials, SoundCloudApiClient apiClient)
     {
         _credentials = credentials;
         _apiClient = apiClient;
         RefreshSession();
+    }
+
+    public void ShowUpdateBanner(string tagName, string htmlUrl, string channel)
+    {
+        UpdateBannerMessage = $"Une nouvelle version ({tagName}) est disponible sur le canal {channel}.";
+        UpdateBannerUrl = htmlUrl;
+        HasUpdateBanner = true;
     }
 
     public void RefreshSession()

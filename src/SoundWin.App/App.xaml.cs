@@ -1,4 +1,5 @@
 using System;
+using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using SoundWin.App.ViewModels;
@@ -150,7 +151,7 @@ public partial class App : Application
                 });
             }
 
-            // Optional auto-check updates on startup
+            // Optional auto-check updates on startup (non-blocking banner)
             if (settings.Current.AutoCheckUpdatesOnStartup)
             {
                 _ = Task.Run(async () =>
@@ -159,35 +160,12 @@ public partial class App : Application
                     {
                         await Task.Delay(3000); // Wait for UI to settle
                         var update = await SoundWin.App.Services.UpdateService.CheckForUpdatesAsync(settings.Current.UpdateChannel);
-                        if (update != null)
+                        if (update != null && !string.IsNullOrEmpty(update.TagName))
                         {
-                            SoundWin.Core.Utils.AppDispatcher.Dispatch(async () =>
+                            var mainVm = Services.GetRequiredService<MainViewModel>();
+                            SoundWin.Core.Utils.AppDispatcher.Dispatch(() =>
                             {
-                                try
-                                {
-                                    if (MainWindow?.Content is FrameworkElement root && root.XamlRoot != null)
-                                    {
-                                        var dialog = new Microsoft.UI.Xaml.Controls.ContentDialog
-                                        {
-                                            XamlRoot = root.XamlRoot,
-                                            Title = "Mise à jour disponible",
-                                            Content = $"Une nouvelle version de SCwin ({update.TagName}) est disponible sur le canal {settings.Current.UpdateChannel}.\n\nSouhaitez-vous la télécharger ?",
-                                            PrimaryButtonText = "Télécharger",
-                                            SecondaryButtonText = "Plus tard",
-                                            DefaultButton = Microsoft.UI.Xaml.Controls.ContentDialogButton.Primary
-                                        };
-                                        var result = await dialog.ShowAsync();
-                                        if (result == Microsoft.UI.Xaml.Controls.ContentDialogResult.Primary && !string.IsNullOrEmpty(update.HtmlUrl))
-                                        {
-                                            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
-                                            {
-                                                FileName = update.HtmlUrl,
-                                                UseShellExecute = true
-                                            });
-                                        }
-                                    }
-                                }
-                                catch { }
+                                mainVm.ShowUpdateBanner(update.TagName, update.HtmlUrl ?? "https://github.com/djell1l/SoundWin/releases", settings.Current.UpdateChannel);
                             });
                         }
                     }
