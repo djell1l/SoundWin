@@ -25,6 +25,7 @@ SoundWin.sln
 ├── src/
 │   ├── SoundWin.Core/          Standalone .NET class library (SoundCloud v2 API, AudioPlayer, SMTC, RPC, Auth)
 │   ├── SoundWin.App/           WinUI 3 Modern Windows Application (MVVM, Mica, Waveform, Controls)
+│   ├── SoundWin.Installer/     Pure WinUI 3 setup wizard
 │   └── SoundWin.Cli/           Diagnostic CLI runner for API, stream resolution, and audio testing
 ```
 
@@ -32,17 +33,16 @@ SoundWin.sln
 
 ## Installation & Distribution
 
-### 1. Local Native Install (`install_local.ps1`)
-To install or update SoundWin natively on your machine:
+### 1. Single-File WinUI 3 Setup (`SoundWin-Setup-v0.1.0-win-x64.exe`)
+Download and run the single executable installer. It is a genuine Windows 11 setup wizard written in pure WinUI 3 that unpacks natively, creates a Desktop shortcut, registers in your Start Menu, and gets out of your way.
+
+### 2. Standalone Portable (`SoundWin-v0.1.0-win-x64-portable.zip`)
+For minimalists and portable USB drives. Unzip anywhere, run `SoundWin.App.exe`, and you're good to go.
+
+### 3. Local Native Install Script (`install_local.ps1`)
+To compile and install SoundWin natively from source on your local machine:
 ```powershell
 .\install_local.ps1
-```
-This compiles a self-contained Release build, registers SoundWin into `C:\Users\%USERNAME%\AppData\Local\Programs\SoundWin`, creates Start Menu and Desktop shortcuts, and sets up native Windows uninstall registration.
-
-### 2. Standalone Release Archive (`package_release.ps1`)
-To generate a portable zip package for distribution:
-```powershell
-.\package_release.ps1
 ```
 
 ---
@@ -84,6 +84,7 @@ AI is the future — why whisper about it on GitHub like it's a dirty secret? Wh
 
 - **[djell1l](https://github.com/djell1l)** — Lead developer & creator
 - **[Gemini](https://github.com/google-gemini)** ([@google-gemini](https://github.com/google-gemini)) via **[Antigravity](https://github.com/google-deepmind)** ([@google-deepmind](https://github.com/google-deepmind)) — AI pair programming collaborator and architecture co-design
+- **[Single-File SFX Setup Architecture](https://github.com/djell1l/Diswin)** — C# pure WinUI 3 self-extracting bootstrap wrapper and deduplicated installer packaging
 - **[SoundCloudExplode](https://github.com/Tyrrrz/SoundCloudExplode)** by Oleksii Holub (Tyrrrz) & Jerro — Lightweight C# SoundCloud API client and stream parser
 - **[sctui](https://github.com/Illogicalll/sctui)** by Illogicalll — Outstanding terminal SoundCloud client inspiration and reverse-engineering insights
 - **[Soundnode](https://github.com/Soundnode/soundnode-app)** — The early pioneer desktop SoundCloud client concept
