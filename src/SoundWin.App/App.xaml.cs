@@ -91,6 +91,9 @@ public partial class App : Application
             if (session != null && !string.IsNullOrEmpty(session.OAuthToken))
             {
                 apiClient.OAuthToken = session.OAuthToken;
+                _ = apiClient.RefreshLikedTrackIdsAsync(session.UserId);
+                var libVm = Services.GetRequiredService<LibraryViewModel>();
+                _ = libVm.LoadAsync();
             }
 
             // Start Discord Rich Presence in background

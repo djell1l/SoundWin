@@ -6,6 +6,7 @@ using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using SoundWin.App.ViewModels;
+using SoundWin.App.Views;
 using SoundWin.Core.Models;
 using SoundWin.Core.Services;
 
@@ -44,11 +45,46 @@ public sealed partial class TrackRowControl : UserControl
         PlayOverlayButton.Opacity = 0;
     }
 
+    private void OnRowTapped(object sender, TappedRoutedEventArgs e)
+    {
+        // Ignore if user tapped one of the action buttons on the right
+        if (e.OriginalSource is DependencyObject src)
+        {
+            var cur = src;
+            while (cur != null && cur != RootBorder)
+            {
+                if (cur == LikeActionBtn || cur == RepostActionBtn || cur == MoreOptionsBtn || cur == PlayOverlayButton)
+                {
+                    return;
+                }
+                cur = VisualTreeHelper.GetParent(cur);
+            }
+        }
+
+        TriggerPlay();
+        e.Handled = true;
+    }
+
     private void OnPlayClicked(object sender, RoutedEventArgs e)
     {
-        if (Track != null)
+        TriggerPlay();
+    }
+
+    private async void TriggerPlay()
+    {
+        if (Track == null) return;
+
+        if (PlayRequested != null)
         {
-            PlayRequested?.Invoke(this, Track);
+            PlayRequested.Invoke(this, Track);
+        }
+        else
+        {
+            var player = App.Services.GetService<AudioPlayerService>();
+            if (player != null)
+            {
+                await player.PlayTrackAsync(Track);
+            }
         }
     }
 
@@ -86,17 +122,56 @@ public sealed partial class TrackRowControl : UserControl
         var api = App.Services.GetService<SoundCloudApiClient>();
         var session = creds?.LoadSession();
 
-        if (session != null && session.IsAuthenticated && api != null)
+        if (session == null || !session.IsAuthenticated || api == null)
         {
-            Track.IsLiked = !Track.IsLiked;
-            if (Track.IsLiked)
-            {
-                await api.LikeTrackAsync(session.UserId, Track.Id);
-            }
-            else
-            {
-                await api.UnlikeTrackAsync(session.UserId, Track.Id);
-            }
+            await PromptLoginIfNeededAsync();
+            return;
+        }
+
+        bool newState = !Track.IsLiked;
+        Track.IsLiked = newState;
+
+        bool ok = newState
+            ? await api.LikeTrackAsync(session.UserId, Track.Id)
+            : await api.UnlikeTrackAsync(session.UserId, Track.Id);
+
+        if (!ok)
+        {
+            Track.IsLiked = !newState;
+        }
+    }
+
+    private async void OnToggleRepostClicked(object sender, RoutedEventArgs e)
+    {
+        if (Track == null) return;
+        var creds = App.Services.GetService<CredentialService>();
+        var api = App.Services.GetService<SoundCloudApiClient>();
+        var session = creds?.LoadSession();
+
+        if (session == null || !session.IsAuthenticated || api == null)
+        {
+            await PromptLoginIfNeededAsync();
+            return;
+        }
+
+        bool newState = !Track.IsReposted;
+        Track.IsReposted = newState;
+
+        bool ok = newState
+            ? await api.RepostTrackAsync(Track.Id)
+            : await api.UnrepostTrackAsync(Track.Id);
+
+        if (!ok)
+        {
+            Track.IsReposted = !newState;
+        }
+    }
+
+    private void OnOpenArtistProfileClicked(object sender, RoutedEventArgs e)
+    {
+        if (Track != null && Track.ArtistId > 0)
+        {
+            MainWindowContent.Current?.NavigateToProfile(Track.ArtistId);
         }
     }
 
@@ -115,6 +190,134 @@ public sealed partial class TrackRowControl : UserControl
         if (sender is Button btn && RootBorder.ContextFlyout is FlyoutBase flyout)
         {
             flyout.ShowAt(btn);
+        }
+    }
+
+    private void OnContextFlyoutOpening(object? sender, object e)
+    {
+        if (Track == null) return;
+
+        LikeMenuItem.Text = Track.IsLiked ? "Retirer des coups de cœur" : "Ajouter aux coups de cœur";
+        RepostMenuItem.Text = Track.IsReposted ? "Retirer le repost" : "Reposter sur mon flux";
+
+        AddToPlaylistSubItem.Items.Clear();
+
+        var newPlItem = new MenuFlyoutItem
+        {
+            Text = "Nouvelle playlist avec ce titre...",
+            Icon = new FontIcon { Glyph = "\uE710" }
+        };
+        newPlItem.Click += OnCreateNewPlaylistWithTrackClicked;
+        AddToPlaylistSubItem.Items.Add(newPlItem);
+
+        var libVm = App.Services.GetService<LibraryViewModel>();
+        if (libVm != null && libVm.UserPlaylists.Count > 0)
+        {
+            AddToPlaylistSubItem.Items.Add(new MenuFlyoutSeparator());
+            foreach (var pl in libVm.UserPlaylists)
+            {
+                var item = new MenuFlyoutItem
+                {
+                    Text = pl.Title,
+                    Tag = pl
+                };
+                item.Click += OnAddToSpecificPlaylistClicked;
+                AddToPlaylistSubItem.Items.Add(item);
+            }
+        }
+    }
+
+    private async void OnAddToSpecificPlaylistClicked(object sender, RoutedEventArgs e)
+    {
+        if (Track == null || sender is not MenuFlyoutItem { Tag: Playlist pl }) return;
+        var api = App.Services.GetService<SoundCloudApiClient>();
+        if (api != null)
+        {
+            await api.AddTrackToPlaylistAsync(pl.Id, Track.Id);
+        }
+    }
+
+    private async void OnCreateNewPlaylistWithTrackClicked(object sender, RoutedEventArgs e)
+    {
+        if (Track == null) return;
+        var creds = App.Services.GetService<CredentialService>();
+        var session = creds?.LoadSession();
+        if (session == null || !session.IsAuthenticated)
+        {
+            await PromptLoginIfNeededAsync();
+            return;
+        }
+
+        var titleBox = new TextBox
+        {
+            Header = "Titre de la playlist",
+            PlaceholderText = "Ma sélection SoundWin",
+            Text = $"Mix - {Track.Title}"
+        };
+
+        var descBox = new TextBox
+        {
+            Header = "Description (optionnel)",
+            PlaceholderText = "Description..."
+        };
+
+        var privateToggle = new ToggleSwitch
+        {
+            Header = "Visibilité",
+            OffContent = "Publique",
+            OnContent = "Privée",
+            IsOn = false
+        };
+
+        var panel = new StackPanel { Spacing = 12, Width = 360 };
+        panel.Children.Add(titleBox);
+        panel.Children.Add(descBox);
+        panel.Children.Add(privateToggle);
+
+        var dialog = new ContentDialog
+        {
+            Title = "Créer une nouvelle playlist",
+            Content = panel,
+            PrimaryButtonText = "Créer et ajouter",
+            CloseButtonText = "Annuler",
+            DefaultButton = ContentDialogButton.Primary,
+            XamlRoot = this.XamlRoot
+        };
+
+        var result = await dialog.ShowAsync();
+        if (result == ContentDialogResult.Primary && !string.IsNullOrWhiteSpace(titleBox.Text))
+        {
+            var api = App.Services.GetService<SoundCloudApiClient>();
+            if (api != null)
+            {
+                string sharing = privateToggle.IsOn ? "private" : "public";
+                await api.CreatePlaylistAsync(titleBox.Text, descBox.Text, sharing, new[] { Track.Id });
+            }
+        }
+    }
+
+    private async System.Threading.Tasks.Task PromptLoginIfNeededAsync()
+    {
+        var dialog = new ContentDialog
+        {
+            Title = "Connexion SoundCloud requise",
+            Content = "Connectez votre compte SoundCloud pour synchroniser vos Likes, Reposts et Playlists en temps réel.",
+            PrimaryButtonText = "Se connecter",
+            CloseButtonText = "Plus tard",
+            DefaultButton = ContentDialogButton.Primary,
+            XamlRoot = this.XamlRoot
+        };
+
+        var res = await dialog.ShowAsync();
+        if (res == ContentDialogResult.Primary)
+        {
+            var loginWin = new LoginWindow();
+            loginWin.LoginSucceeded += async (_, _) =>
+            {
+                var libVm = App.Services.GetService<LibraryViewModel>();
+                if (libVm != null) await libVm.LoadAsync();
+            };
+            loginWin.Activate();
         }
     }
 }

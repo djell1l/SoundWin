@@ -9,6 +9,8 @@ public class Shelf
     public string? QueryUrn { get; set; }
     public List<Playlist> Playlists { get; set; } = new();
     public List<Track> Tracks { get; set; } = new();
+    public bool HasPlaylists => Playlists.Count > 0;
+    public bool HasTracks => Tracks.Count > 0;
 }
 
 public class WaveformData

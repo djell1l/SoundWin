@@ -27,6 +27,9 @@ public partial class Track : ObservableObject
     private bool _isLiked;
 
     [ObservableProperty]
+    private bool _isReposted;
+
+    [ObservableProperty]
     private bool _isPlaying;
 
     public string HighResArtworkUrl
@@ -36,8 +39,6 @@ public partial class Track : ObservableObject
             if (string.IsNullOrEmpty(ArtworkUrl))
                 return "ms-appx:///Assets/DefaultCover.png";
 
-            // SoundCloud provides -large.jpg (100x100) by default.
-            // Replacing with -t500x500.jpg gives high-resolution crisp cover art!
             return ArtworkUrl.Replace("-large.", "-t500x500.");
         }
     }
@@ -62,7 +63,7 @@ public class TrackTranscoding
 {
     public string Url { get; set; } = string.Empty;
     public string Protocol { get; set; } = string.Empty; // "hls" or "progressive"
-    public string MimeType { get; set; } = string.Empty; // "audio/mp4; codecs=\"mp4a.40.2\"" or "audio/mpeg"
+    public string MimeType { get; set; } = string.Empty;
     public string? Preset { get; set; }
     public int Duration { get; set; }
     public bool Snipped { get; set; }

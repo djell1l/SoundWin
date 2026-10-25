@@ -1,5 +1,6 @@
-﻿using System;
+using System;
 using System.Collections.ObjectModel;
+using System.Linq;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -40,6 +41,7 @@ public partial class ProfileViewModel : ObservableObject
     private string _statusMessage = string.Empty;
 
     public ObservableCollection<Track> UserTracks { get; } = new();
+    public ObservableCollection<Playlist> UserPlaylists { get; } = new();
     public ObservableCollection<Track> LikedTracks { get; } = new();
 
     public ProfileViewModel(SoundCloudApiClient apiClient, CredentialService credentials, AudioPlayerService player)
@@ -47,6 +49,63 @@ public partial class ProfileViewModel : ObservableObject
         _apiClient = apiClient;
         _credentials = credentials;
         _player = player;
+
+        _apiClient.TrackLikeChanged += OnTrackLikeChanged;
+        _apiClient.UserPlaylistsChanged += OnUserPlaylistsChanged;
+    }
+
+    private async void OnTrackLikeChanged(long trackId, bool isLiked)
+    {
+        var session = _credentials.LoadSession();
+        if (User == null || session == null || User.Id != session.UserId) return;
+
+        if (isLiked)
+        {
+            if (LikedTracks.Any(t => t.Id == trackId)) return;
+            try
+            {
+                var tracks = await _apiClient.GetTracksByIdsAsync(new[] { trackId });
+                var track = tracks.FirstOrDefault();
+                if (track != null)
+                {
+                    track.IsLiked = true;
+                    AppDispatcher.Dispatch(() =>
+                    {
+                        if (!LikedTracks.Any(t => t.Id == trackId))
+                        {
+                            LikedTracks.Insert(0, track);
+                        }
+                    });
+                }
+            }
+            catch { }
+        }
+        else
+        {
+            AppDispatcher.Dispatch(() =>
+            {
+                var existing = LikedTracks.FirstOrDefault(t => t.Id == trackId);
+                if (existing != null)
+                {
+                    LikedTracks.Remove(existing);
+                }
+            });
+        }
+    }
+
+    private async void OnUserPlaylistsChanged()
+    {
+        if (User == null) return;
+        try
+        {
+            var pls = await _apiClient.GetUserPlaylistsAsync(User.Id, 40);
+            AppDispatcher.Dispatch(() =>
+            {
+                UserPlaylists.Clear();
+                foreach (var p in pls) UserPlaylists.Add(p);
+            });
+        }
+        catch { }
     }
 
     public async Task InitializeAsync(long? targetUserId = null)
@@ -76,15 +135,20 @@ public partial class ProfileViewModel : ObservableObject
                 EditCountry = user.Country ?? string.Empty;
             }
 
-            // Load user's published tracks
-            var tracks = await _apiClient.GetUserTracksAsync(userId);
-            UserTracks.Clear();
-            foreach (var t in tracks) UserTracks.Add(t);
+            var tracksTask = _apiClient.GetUserTracksAsync(userId);
+            var playlistsTask = _apiClient.GetUserPlaylistsAsync(userId, 40);
+            var likesTask = _apiClient.GetLikedTracksAsync(userId, 40);
 
-            // Load liked tracks
-            var likes = await _apiClient.GetLikedTracksAsync(userId, 30);
+            await Task.WhenAll(tracksTask, playlistsTask, likesTask);
+
+            UserTracks.Clear();
+            foreach (var t in tracksTask.Result) UserTracks.Add(t);
+
+            UserPlaylists.Clear();
+            foreach (var p in playlistsTask.Result) UserPlaylists.Add(p);
+
             LikedTracks.Clear();
-            foreach (var l in likes) LikedTracks.Add(l);
+            foreach (var l in likesTask.Result) LikedTracks.Add(l);
         }
         catch (Exception ex)
         {

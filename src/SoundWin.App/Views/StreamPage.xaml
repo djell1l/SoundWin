@@ -30,7 +30,8 @@
             <!-- Posts List -->
             <ListView
                 ItemsSource="{x:Bind ViewModel.Posts, Mode=OneWay}"
-                SelectionMode="None">
+                SelectionMode="None"
+                IsItemClickEnabled="False">
                 <ListView.ItemTemplate>
                     <DataTemplate x:DataType="models:StreamPost">
                         <Border
@@ -55,6 +56,29 @@
                                 <controls:TrackRowControl
                                     Track="{x:Bind Track}"
                                     Visibility="{x:Bind Track, Converter={StaticResource NullToVisibilityConverter}}" />
+
+                                <!-- Render Playlist item -->
+                                <Button
+                                    Visibility="{x:Bind Playlist, Converter={StaticResource NullToVisibilityConverter}}"
+                                    Background="#1E1E26"
+                                    BorderBrush="#20FFFFFF"
+                                    BorderThickness="1"
+                                    CornerRadius="8"
+                                    Padding="12"
+                                    HorizontalAlignment="Stretch"
+                                    HorizontalContentAlignment="Left"
+                                    Click="OnStreamPlaylistClicked">
+                                    <Grid ColumnDefinitions="Auto,*,Auto">
+                                        <Border Grid.Column="0" Width="56" Height="56" CornerRadius="6" Margin="0,0,14,0">
+                                            <Image Source="{x:Bind Playlist.DisplayArtworkUrl}" Stretch="UniformToFill" />
+                                        </Border>
+                                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="4">
+                                            <TextBlock Text="{x:Bind Playlist.Title}" FontWeight="SemiBold" FontSize="14" />
+                                            <TextBlock Text="{x:Bind Playlist.Author}" FontSize="12" Opacity="0.65" />
+                                        </StackPanel>
+                                        <FontIcon Grid.Column="2" Glyph="&#xE76C;" FontSize="14" Opacity="0.6" VerticalAlignment="Center" />
+                                    </Grid>
+                                </Button>
                             </StackPanel>
                         </Border>
                     </DataTemplate>

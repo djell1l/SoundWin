@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Navigation;
@@ -29,6 +29,22 @@ public sealed partial class ProfilePage : Page
         if (e.ClickedItem is Track track)
         {
             await Vm.PlayTrack(track);
+        }
+    }
+
+    private async void OnTrackPlayRequested(object? sender, Track track)
+    {
+        if (track != null)
+        {
+            await Vm.PlayTrack(track);
+        }
+    }
+
+    private void OnPlaylistClicked(object sender, ItemClickEventArgs e)
+    {
+        if (e.ClickedItem is Playlist pl)
+        {
+            MainWindowContent.Current?.NavigateToPlaylist(pl);
         }
     }
 

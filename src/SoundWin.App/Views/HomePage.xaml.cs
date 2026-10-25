@@ -2,8 +2,10 @@ using System;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Input;
 using SoundWin.App.ViewModels;
 using SoundWin.Core.Models;
+using Windows.System;
 
 namespace SoundWin.App.Views;
 
@@ -42,11 +44,44 @@ public sealed partial class HomePage : Page
         }
     }
 
-    private async void OnPlaylistClicked(object sender, RoutedEventArgs e)
+    private void OnHorizontalScrollViewerPointerWheelChanged(object sender, PointerRoutedEventArgs e)
+    {
+        // When user scrolls with normal mouse wheel (without Shift) over a horizontal album row,
+        // forward the vertical scroll directly to the outer MainScrollViewer so scrolling never gets stuck.
+        if (!e.KeyModifiers.HasFlag(VirtualKeyModifiers.Shift))
+        {
+            var props = e.GetCurrentPoint(MainScrollViewer).Properties;
+            if (!props.IsHorizontalMouseWheel)
+            {
+                int delta = props.MouseWheelDelta;
+                double targetOffset = Math.Max(0, MainScrollViewer.VerticalOffset - (delta * 0.8));
+                MainScrollViewer.ChangeView(null, targetOffset, null, false);
+                e.Handled = true;
+            }
+        }
+    }
+
+    private void OnPlaylistCardClicked(object sender, RoutedEventArgs e)
+    {
+        if (sender is FrameworkElement { DataContext: Playlist playlist })
+        {
+            MainWindowContent.Current?.NavigateToPlaylist(playlist);
+        }
+    }
+
+    private async void OnQuickPlayPlaylistClicked(object sender, RoutedEventArgs e)
     {
         if (sender is FrameworkElement { DataContext: Playlist playlist })
         {
             await ViewModel.PlayPlaylist(playlist);
+        }
+    }
+
+    private async void OnTrackPlayRequested(object? sender, Track track)
+    {
+        if (track != null)
+        {
+            await ViewModel.PlayTrack(track);
         }
     }
 }

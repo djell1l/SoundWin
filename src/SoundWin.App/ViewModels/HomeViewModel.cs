@@ -58,6 +58,18 @@ public partial class HomeViewModel : ObservableObject
     public async Task PlayTrack(Track track)
     {
         if (track == null) return;
+
+        foreach (var shelf in Shelves)
+        {
+            var idx = shelf.Tracks.IndexOf(track);
+            if (idx >= 0)
+            {
+                var queue = new ObservableCollection<Track>(shelf.Tracks);
+                await _player.PlayTrackAsync(track, queue, idx);
+                return;
+            }
+        }
+
         await _player.PlayTrackAsync(track);
     }
 
@@ -68,10 +80,18 @@ public partial class HomeViewModel : ObservableObject
 
         try
         {
-            if (playlist.Tracks.Count == 0)
+            if (playlist.Tracks.Count == 0 || (playlist.TrackCount > playlist.Tracks.Count && !string.IsNullOrEmpty(playlist.Id)))
             {
                 var full = await _apiClient.GetPlaylistDetailsAsync(playlist.Id);
-                playlist.Tracks = full.Tracks;
+                if (full.Tracks.Count > 0)
+                {
+                    playlist.Tracks = full.Tracks;
+                    playlist.TrackIds = full.TrackIds;
+                }
+                else
+                {
+                    await _apiClient.HydratePlaylistTracksAsync(playlist);
+                }
             }
 
             if (playlist.Tracks.Count > 0)

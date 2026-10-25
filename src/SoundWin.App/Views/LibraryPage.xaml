@@ -6,7 +6,7 @@
     xmlns:controls="using:SoundWin.App.Controls">
 
     <ScrollViewer Padding="32,24,32,48">
-        <StackPanel MaxWidth="880" HorizontalAlignment="Left" Spacing="24">
+        <StackPanel MaxWidth="920" HorizontalAlignment="Left" Spacing="28">
             <!-- NOT LOGGED IN STATE -->
             <Grid
                 x:Name="LoginPromptCard"
@@ -16,11 +16,11 @@
                 BorderBrush="#25FFFFFF"
                 BorderThickness="1"
                 HorizontalAlignment="Stretch">
-                <StackPanel Spacing="16" MaxWidth="500" HorizontalAlignment="Center" VerticalAlignment="Center">
+                <StackPanel Spacing="16" MaxWidth="520" HorizontalAlignment="Center" VerticalAlignment="Center">
                     <FontIcon Glyph="&#xE8D7;" FontSize="48" Foreground="{StaticResource SoundCloudOrangeBrush}" HorizontalAlignment="Center" />
                     <TextBlock Text="Connectez-vous à SoundCloud" FontSize="22" FontWeight="Bold" HorizontalAlignment="Center" />
                     <TextBlock
-                        Text="Accédez directement à l'ensemble de votre bibliothèque personnelle : titres likés, playlists sauvegardées et recommandations d'artistes."
+                        Text="Synchronisez vos coups de cœur (Likes), vos reposts, créez et gérez vos playlists SoundCloud en temps réel dans une interface 100% native WinUI 3."
                         FontSize="14"
                         Opacity="0.75"
                         TextAlignment="Center"
@@ -50,7 +50,7 @@
                 Background="#18181E"
                 BorderBrush="#25FFFFFF"
                 BorderThickness="1"
-                ColumnDefinitions="Auto,*,Auto">
+                ColumnDefinitions="Auto,*,Auto,Auto">
 
                 <PersonPicture
                     x:Name="UserAvatar"
@@ -60,15 +60,30 @@
 
                 <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="4">
                     <TextBlock x:Name="UsernameText" FontSize="20" FontWeight="Bold" />
-                    <TextBlock Text="Compte SoundCloud synchronisé" FontSize="12" Opacity="0.6" />
+                    <TextBlock Text="Synchronisation temps réel SoundCloud activée (Likes, Reposts &amp; Playlists)" FontSize="12" Opacity="0.65" />
                 </StackPanel>
 
                 <Button
                     Grid.Column="2"
                     VerticalAlignment="Center"
+                    Margin="0,0,12,0"
+                    Click="OnRefreshLibraryClick"
+                    Background="#18FFFFFF"
+                    BorderThickness="0"
+                    CornerRadius="8">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <FontIcon Glyph="&#xE72C;" FontSize="13" />
+                        <TextBlock Text="Actualiser" />
+                    </StackPanel>
+                </Button>
+
+                <Button
+                    Grid.Column="3"
+                    VerticalAlignment="Center"
                     Click="OnLogoutClick"
                     Background="Transparent"
-                    BorderThickness="1">
+                    BorderThickness="1"
+                    CornerRadius="8">
                     <StackPanel Orientation="Horizontal" Spacing="6">
                         <FontIcon Glyph="&#xF3B1;" FontSize="13" />
                         <TextBlock Text="Déconnexion" />
@@ -76,19 +91,77 @@
                 </Button>
             </Grid>
 
+            <ProgressBar x:Name="LikesLoadingProgress" IsIndeterminate="True" Visibility="Collapsed" />
+
+            <!-- MY PLAYLISTS SECTION -->
+            <StackPanel x:Name="PlaylistsSection" Visibility="Collapsed" Spacing="16">
+                <Grid ColumnDefinitions="*,Auto">
+                    <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                        <FontIcon Glyph="&#xE8FD;" FontSize="18" Foreground="{StaticResource SoundCloudOrangeBrush}" />
+                        <TextBlock Text="Mes Playlists" FontSize="20" FontWeight="Bold" />
+                    </StackPanel>
+
+                    <Button
+                        Grid.Column="1"
+                        Background="{StaticResource SoundCloudOrangeBrush}"
+                        Foreground="White"
+                        CornerRadius="18"
+                        Height="36"
+                        Padding="16,0"
+                        Click="OnCreatePlaylistClick">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <FontIcon Glyph="&#xE710;" FontSize="13" />
+                            <TextBlock Text="Nouvelle Playlist" FontWeight="SemiBold" FontSize="13" />
+                        </StackPanel>
+                    </Button>
+                </Grid>
+
+                <GridView
+                    x:Name="UserPlaylistsGridView"
+                    ItemsSource="{x:Bind ViewModel.UserPlaylists, Mode=OneWay}"
+                    SelectionMode="None"
+                    IsItemClickEnabled="True"
+                    ItemClick="OnPlaylistItemClicked">
+                    <GridView.ItemTemplate>
+                        <DataTemplate x:DataType="models:Playlist">
+                            <Border
+                                Width="168"
+                                Padding="10"
+                                Margin="0,0,12,12"
+                                CornerRadius="10"
+                                Background="#16161C"
+                                BorderBrush="#18FFFFFF"
+                                BorderThickness="1">
+                                <StackPanel Spacing="8">
+                                    <Grid Width="146" Height="146">
+                                        <Border CornerRadius="8" Background="#22222A">
+                                            <Image Source="{x:Bind DisplayArtworkUrl}" Stretch="UniformToFill" />
+                                        </Border>
+                                    </Grid>
+                                    <TextBlock Text="{x:Bind Title}" FontWeight="SemiBold" FontSize="13" TextTrimming="CharacterEllipsis" MaxLines="1" />
+                                    <StackPanel Orientation="Horizontal" Spacing="4">
+                                        <TextBlock Text="{x:Bind TrackCount}" FontSize="11" Opacity="0.6" />
+                                        <TextBlock Text="titres" FontSize="11" Opacity="0.6" />
+                                    </StackPanel>
+                                </StackPanel>
+                            </Border>
+                        </DataTemplate>
+                    </GridView.ItemTemplate>
+                </GridView>
+            </StackPanel>
+
             <!-- LIKES SECTION -->
             <StackPanel x:Name="LikesSection" Visibility="Collapsed" Spacing="16">
                 <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
                     <FontIcon Glyph="&#xEB52;" FontSize="18" Foreground="{StaticResource SoundCloudOrangeBrush}" />
-                    <TextBlock Text="Titres Likés" FontSize="20" FontWeight="Bold" />
+                    <TextBlock Text="Titres Likés (Coups de cœur)" FontSize="20" FontWeight="Bold" />
                 </StackPanel>
-                
-                <ProgressBar x:Name="LikesLoadingProgress" IsIndeterminate="True" Visibility="Collapsed" />
-                
+
                 <ListView
                     x:Name="LikesListView"
                     ItemsSource="{x:Bind ViewModel.LikedTracks, Mode=OneWay}"
-                    SelectionMode="None">
+                    SelectionMode="None"
+                    IsItemClickEnabled="False">
                     <ListView.ItemTemplate>
                         <DataTemplate x:DataType="models:Track">
                             <controls:TrackRowControl Track="{x:Bind}" PlayRequested="OnPlayTrackRequested" />

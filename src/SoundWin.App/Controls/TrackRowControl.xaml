@@ -10,11 +10,12 @@
         CornerRadius="8"
         Background="Transparent"
         PointerEntered="OnPointerEntered"
-        PointerExited="OnPointerExited">
+        PointerExited="OnPointerExited"
+        Tapped="OnRowTapped">
 
         <!-- Context Flyout (Right Click Menu) -->
         <Border.ContextFlyout>
-            <MenuFlyout>
+            <MenuFlyout Opening="OnContextFlyoutOpening">
                 <MenuFlyoutItem Text="Lire maintenant" Click="OnPlayClicked">
                     <MenuFlyoutItem.Icon>
                         <FontIcon Glyph="&#xE768;" />
@@ -36,12 +37,27 @@
                         <FontIcon Glyph="&#xE753;" />
                     </MenuFlyoutItem.Icon>
                 </MenuFlyoutItem>
-                <MenuFlyoutItem Text="Ajouter aux coups de cœur" Click="OnToggleLikeClicked">
+                <MenuFlyoutItem x:Name="LikeMenuItem" Text="Ajouter aux coups de cœur" Click="OnToggleLikeClicked">
                     <MenuFlyoutItem.Icon>
                         <FontIcon Glyph="&#xEB51;" />
                     </MenuFlyoutItem.Icon>
                 </MenuFlyoutItem>
+                <MenuFlyoutItem x:Name="RepostMenuItem" Text="Reposter sur mon flux" Click="OnToggleRepostClicked">
+                    <MenuFlyoutItem.Icon>
+                        <FontIcon Glyph="&#xE8EB;" />
+                    </MenuFlyoutItem.Icon>
+                </MenuFlyoutItem>
+                <MenuFlyoutSubItem x:Name="AddToPlaylistSubItem" Text="Ajouter à une playlist">
+                    <MenuFlyoutSubItem.Icon>
+                        <FontIcon Glyph="&#xE710;" />
+                    </MenuFlyoutSubItem.Icon>
+                </MenuFlyoutSubItem>
                 <MenuFlyoutSeparator />
+                <MenuFlyoutItem Text="Voir le profil de l'artiste" Click="OnOpenArtistProfileClicked">
+                    <MenuFlyoutItem.Icon>
+                        <FontIcon Glyph="&#xE77B;" />
+                    </MenuFlyoutItem.Icon>
+                </MenuFlyoutItem>
                 <MenuFlyoutItem Text="Copier le lien SoundCloud" Click="OnCopyLinkClicked">
                     <MenuFlyoutItem.Icon>
                         <FontIcon Glyph="&#xE8C8;" />
@@ -50,10 +66,10 @@
             </MenuFlyout>
         </Border.ContextFlyout>
 
-        <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto">
+        <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto,Auto">
             <!-- Cover Art + Play Overlay -->
             <Grid Grid.Column="0" Width="44" Height="44" Margin="0,0,12,0">
-                <Border CornerRadius="6">
+                <Border CornerRadius="6" Background="#1E1E26">
                     <Image
                         Source="{x:Bind Track.HighResArtworkUrl, Mode=OneWay}"
                         Stretch="UniformToFill" />
@@ -98,21 +114,42 @@
                 VerticalAlignment="Center"
                 Margin="12,0" />
 
-            <!-- Like Quick Button -->
+            <!-- Like Quick Button (Dynamically Synced) -->
             <Button
+                x:Name="LikeActionBtn"
                 Grid.Column="3"
                 Background="Transparent"
                 BorderThickness="0"
                 Padding="6"
                 VerticalAlignment="Center"
                 Click="OnToggleLikeClicked"
-                ToolTipService.ToolTip="J'aime">
-                <FontIcon Glyph="&#xEB51;" FontSize="13" Opacity="0.7" />
+                ToolTipService.ToolTip="Coup de cœur (Like)">
+                <FontIcon
+                    Glyph="{x:Bind Track.IsLiked, Mode=OneWay, Converter={StaticResource BooleanHeartConverter}}"
+                    Foreground="{x:Bind Track.IsLiked, Mode=OneWay, Converter={StaticResource BooleanOrangeBrushConverter}}"
+                    FontSize="14" />
+            </Button>
+
+            <!-- Repost Quick Button (Dynamically Synced) -->
+            <Button
+                x:Name="RepostActionBtn"
+                Grid.Column="4"
+                Background="Transparent"
+                BorderThickness="0"
+                Padding="6"
+                VerticalAlignment="Center"
+                Click="OnToggleRepostClicked"
+                ToolTipService.ToolTip="Reposter">
+                <FontIcon
+                    Glyph="&#xE8EB;"
+                    Foreground="{x:Bind Track.IsReposted, Mode=OneWay, Converter={StaticResource BooleanOrangeBrushConverter}}"
+                    FontSize="13" />
             </Button>
 
             <!-- Context Menu Button (...) -->
             <Button
-                Grid.Column="4"
+                x:Name="MoreOptionsBtn"
+                Grid.Column="5"
                 Background="Transparent"
                 BorderThickness="0"
                 Padding="6"

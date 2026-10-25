@@ -75,8 +75,15 @@ public sealed partial class SearchPage : Page
     {
         if (e.ClickedItem is Playlist playlist)
         {
-            var homeVm = App.Services.GetRequiredService<HomeViewModel>();
-            _ = homeVm.PlayPlaylist(playlist);
+            MainWindowContent.Current?.NavigateToPlaylist(playlist);
+        }
+    }
+
+    private void OnUserItemClick(object sender, ItemClickEventArgs e)
+    {
+        if (e.ClickedItem is User user && user.Id > 0)
+        {
+            MainWindowContent.Current?.NavigateToProfile(user.Id);
         }
     }
 }

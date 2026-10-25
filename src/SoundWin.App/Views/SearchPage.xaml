@@ -88,7 +88,9 @@
                 <ListView
                     x:Name="UsersListView"
                     ItemsSource="{x:Bind ViewModel.UserResults, Mode=OneWay}"
-                    SelectionMode="None">
+                    SelectionMode="None"
+                    IsItemClickEnabled="True"
+                    ItemClick="OnUserItemClick">
                     <ListView.ItemTemplate>
                         <DataTemplate x:DataType="models:User">
                             <Grid Padding="12,8" ColumnDefinitions="Auto,*,Auto">

@@ -3,11 +3,14 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using SoundWin.App.ViewModels;
+using SoundWin.Core.Models;
 
 namespace SoundWin.App.Views;
 
 public sealed partial class MainWindowContent : UserControl
 {
+    public static MainWindowContent? Current { get; private set; }
+
     public PlayerViewModel PlayerVm { get; }
     public MainViewModel MainVm { get; }
     public SettingsViewModel SettingsVm { get; }
@@ -16,6 +19,7 @@ public sealed partial class MainWindowContent : UserControl
 
     public MainWindowContent()
     {
+        Current = this;
         InitializeComponent();
 
         PlayerVm = App.Services.GetRequiredService<PlayerViewModel>();
@@ -25,6 +29,29 @@ public sealed partial class MainWindowContent : UserControl
         // Default page: Home
         MainNavView.SelectedItem = MainNavView.MenuItems[0];
         ContentFrame.Navigate(typeof(HomePage));
+    }
+
+    public void NavigateToPlaylist(Playlist playlist)
+    {
+        if (playlist == null) return;
+        ContentFrame.Navigate(typeof(PlaylistDetailPage), playlist);
+    }
+
+    public void NavigateToProfile(long userId)
+    {
+        ContentFrame.Navigate(typeof(ProfilePage), userId);
+    }
+
+    public void NavigateToHome()
+    {
+        MainNavView.SelectedItem = MainNavView.MenuItems[0];
+        ContentFrame.Navigate(typeof(HomePage));
+    }
+
+    public void NavigateToLibrary()
+    {
+        MainNavView.SelectedItem = MainNavView.MenuItems[4];
+        ContentFrame.Navigate(typeof(LibraryPage));
     }
 
     private void OnNavSelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)

@@ -2,10 +2,134 @@
     x:Class="SoundWin.App.Views.LoginWindow"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    Title="Connexion SoundCloud">
+    Title="Connexion SoundCloud (Natif WinUI 3)">
 
-    <Grid Background="#121212">
-        <WebView2 x:Name="LoginWebView" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" />
-        <ProgressBar x:Name="LoginProgress" IsIndeterminate="True" VerticalAlignment="Top" Visibility="Visible" />
+    <Window.SystemBackdrop>
+        <MicaBackdrop Kind="BaseAlt" />
+    </Window.SystemBackdrop>
+
+    <Grid Background="#121216" Padding="32">
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+            <StackPanel Spacing="22" VerticalAlignment="Center">
+                <!-- Brand Header -->
+                <StackPanel Spacing="8" HorizontalAlignment="Center">
+                    <Border
+                        Width="56"
+                        Height="56"
+                        CornerRadius="28"
+                        Background="#20FF5500"
+                        HorizontalAlignment="Center">
+                        <FontIcon
+                            Glyph="&#xE77B;"
+                            FontSize="24"
+                            Foreground="{StaticResource SoundCloudOrangeBrush}"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center" />
+                    </Border>
+                    <TextBlock
+                        Text="Connexion SoundCloud"
+                        FontSize="22"
+                        FontWeight="Bold"
+                        HorizontalAlignment="Center" />
+                    <TextBlock
+                        Text="100% Natif WinUI 3 — Sans WebView2 ni navigateur embarqué"
+                        FontSize="12"
+                        Opacity="0.65"
+                        HorizontalAlignment="Center" />
+                </StackPanel>
+
+                <!-- Step 1: Open Browser -->
+                <Border
+                    Background="#1A1A22"
+                    BorderBrush="#22FFFFFF"
+                    BorderThickness="1"
+                    CornerRadius="12"
+                    Padding="18">
+                    <StackPanel Spacing="10">
+                        <TextBlock Text="Étape 1 — Connectez-vous sur votre navigateur" FontWeight="SemiBold" FontSize="14" />
+                        <TextBlock
+                            Text="Ouvrez SoundCloud dans votre navigateur habituel. Une fois connecté, ouvrez les outils de développement (F12 > Application > Cookies > soundcloud.com) et copiez la valeur du cookie 'oauth_token'."
+                            FontSize="12"
+                            Opacity="0.75"
+                            TextWrapping="Wrap" />
+                        <Button
+                            HorizontalAlignment="Left"
+                            Background="#25FFFFFF"
+                            BorderThickness="0"
+                            CornerRadius="8"
+                            Padding="14,8"
+                            Click="OnOpenBrowserClicked">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <FontIcon Glyph="&#xE774;" FontSize="13" />
+                                <TextBlock Text="Ouvrir soundcloud.com/signin" FontSize="12" FontWeight="SemiBold" />
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                </Border>
+
+                <!-- Step 2: Paste Token -->
+                <Border
+                    Background="#1A1A22"
+                    BorderBrush="#22FFFFFF"
+                    BorderThickness="1"
+                    CornerRadius="12"
+                    Padding="18">
+                    <StackPanel Spacing="12">
+                        <TextBlock Text="Étape 2 — Jeton de session (oauth_token)" FontWeight="SemiBold" FontSize="14" />
+                        <PasswordBox
+                            x:Name="OAuthTokenBox"
+                            PlaceholderText="Ex: 2-298471-123456789-abcdef..."
+                            PasswordRevealMode="Peek" />
+                        <Button
+                            HorizontalAlignment="Left"
+                            Background="Transparent"
+                            BorderThickness="1"
+                            CornerRadius="6"
+                            Padding="10,4"
+                            Click="OnPasteClipboardClicked">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <FontIcon Glyph="&#xE77F;" FontSize="12" />
+                                <TextBlock Text="Coller depuis le presse-papiers" FontSize="11" />
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                </Border>
+
+                <!-- Status / Error -->
+                <InfoBar
+                    x:Name="StatusInfoBar"
+                    IsOpen="False"
+                    IsClosable="True" />
+
+                <ProgressBar
+                    x:Name="ValidationProgress"
+                    IsIndeterminate="True"
+                    Visibility="Collapsed" />
+
+                <!-- Actions -->
+                <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="12">
+                    <Button
+                        Grid.Column="1"
+                        Content="Annuler"
+                        Padding="18,8"
+                        CornerRadius="8"
+                        Click="OnCancelClicked" />
+                    <Button
+                        x:Name="ConnectButton"
+                        Grid.Column="2"
+                        Background="{StaticResource SoundCloudOrangeBrush}"
+                        Foreground="White"
+                        FontWeight="SemiBold"
+                        Padding="22,8"
+                        CornerRadius="8"
+                        Click="OnConnectClicked">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <FontIcon Glyph="&#xE8FB;" FontSize="13" />
+                            <TextBlock Text="Synchroniser le compte" />
+                        </StackPanel>
+                    </Button>
+                </Grid>
+            </StackPanel>
+        </ScrollViewer>
     </Grid>
 </Window>

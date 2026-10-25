@@ -17,6 +17,10 @@ public partial class Playlist : ObservableObject
     public bool IsSystemPlaylist { get; set; }
     public string? PermalinkUrl { get; set; }
     public List<Track> Tracks { get; set; } = new();
+    public List<long> TrackIds { get; set; } = new();
+
+    [ObservableProperty]
+    private bool _isLiked;
 
     public string DisplayArtworkUrl
     {

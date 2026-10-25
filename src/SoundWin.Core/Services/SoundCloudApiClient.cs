@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
@@ -24,6 +25,15 @@ public class SoundCloudApiClient
     private string? _clientId;
     private string? _oauthToken;
     private readonly SemaphoreSlim _initLock = new(1, 1);
+
+    // Global synchronized caches for Liked Tracks, Reposts, and User Playlists
+    private static readonly ConcurrentDictionary<long, bool> _likedTrackIds = new();
+    private static readonly ConcurrentDictionary<long, bool> _repostedTrackIds = new();
+    private static readonly ConcurrentDictionary<long, WeakReference<Track>> _trackRegistry = new();
+
+    public event Action<long, bool>? TrackLikeChanged;
+    public event Action<long, bool>? TrackRepostChanged;
+    public event Action? UserPlaylistsChanged;
 
     static SoundCloudApiClient()
     {
@@ -55,7 +65,6 @@ public class SoundCloudApiClient
         {
             if (!string.IsNullOrEmpty(_clientId)) return;
 
-            // Strategy 1: Use SoundCloudExplode built-in scraper
             try
             {
                 await _explodeClient.InitializeAsync(cancellationToken);
@@ -63,7 +72,6 @@ public class SoundCloudApiClient
             }
             catch { }
 
-            // Strategy 2: Direct web asset scraping if Strategy 1 failed
             if (string.IsNullOrEmpty(_clientId))
             {
                 _clientId = await ScrapeClientIdDirectAsync(cancellationToken);
@@ -116,7 +124,7 @@ public class SoundCloudApiClient
     // ==========================================
     // 1. HOME / CURATED SELECTIONS (Mixed Selections)
     // ==========================================
-    public async Task<List<Shelf>> GetHomeMixedSelectionsAsync(int limit = 10, CancellationToken ct = default)
+    public async Task<List<Shelf>> GetHomeMixedSelectionsAsync(int limit = 12, CancellationToken ct = default)
     {
         await EnsureInitializedAsync(ct);
 
@@ -133,6 +141,14 @@ public class SoundCloudApiClient
 
         foreach (var shelfEl in col.EnumerateArray())
         {
+            // Filter out any promoted or ad-related shelves
+            if (shelfEl.TryGetProperty("tracking_feature_name", out var tf) &&
+                (tf.GetString()?.Contains("promoted", StringComparison.OrdinalIgnoreCase) == true ||
+                 tf.GetString()?.Contains("ad", StringComparison.OrdinalIgnoreCase) == true))
+            {
+                continue;
+            }
+
             var shelf = new Shelf
             {
                 Title = shelfEl.TryGetProperty("title", out var t) ? t.GetString() ?? "" : "",
@@ -144,6 +160,8 @@ public class SoundCloudApiClient
             {
                 foreach (var item in itemsCol.EnumerateArray())
                 {
+                    if (IsAdOrPromotedItem(item)) continue;
+
                     var kind = item.TryGetProperty("kind", out var k) ? k.GetString() : "";
                     if (kind == "playlist" || kind == "system-playlist")
                     {
@@ -153,7 +171,7 @@ public class SoundCloudApiClient
                     else if (kind == "track")
                     {
                         var track = ParseTrack(item);
-                        shelf.Tracks.Add(track);
+                        if (track.Id > 0) shelf.Tracks.Add(track);
                     }
                 }
             }
@@ -164,11 +182,49 @@ public class SoundCloudApiClient
             }
         }
 
+        // Also append a Trending Tracks shelf so users always have selectable tracks on Home!
+        try
+        {
+            var trendingTracks = await SearchTracksAsync("trending 2026", 16, 0, ct);
+            if (trendingTracks.Count > 0)
+            {
+                shelves.Insert(0, new Shelf
+                {
+                    Title = "Titres Tendances & Découvertes",
+                    Description = "Sélectionnez directement un titre pour lancer l'écoute sans aucune coupure ni publicité.",
+                    Tracks = trendingTracks
+                });
+            }
+        }
+        catch { }
+
         return shelves;
     }
 
+    private static bool IsAdOrPromotedItem(JsonElement el)
+    {
+        if (el.TryGetProperty("kind", out var k))
+        {
+            var kindStr = k.GetString() ?? "";
+            if (kindStr.Contains("ad", StringComparison.OrdinalIgnoreCase) ||
+                kindStr.Contains("promoted", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+        }
+        if (el.TryGetProperty("promoted_by", out var pb) && pb.ValueKind != JsonValueKind.Null)
+        {
+            return true;
+        }
+        if (el.TryGetProperty("monetization_model", out var mm) && mm.GetString() == "AD_SUPPORTED_ONLY")
+        {
+            // Still playable via direct CDN, we never request ad endpoints
+        }
+        return false;
+    }
+
     // ==========================================
-    // 2. PLAYLIST DETAILS & SYSTEM PLAYLIST RESOLUTION
+    // 2. PLAYLIST DETAILS & FULL TRACK RESOLUTION
     // ==========================================
     public async Task<Playlist> GetPlaylistDetailsAsync(string playlistUrnOrId, CancellationToken ct = default)
     {
@@ -191,7 +247,83 @@ public class SoundCloudApiClient
         var json = await response.Content.ReadAsStringAsync(ct);
         using var doc = JsonDocument.Parse(json);
 
-        return ParsePlaylist(doc.RootElement);
+        var playlist = ParsePlaylist(doc.RootElement);
+        await HydratePlaylistTracksAsync(playlist, ct);
+        return playlist;
+    }
+
+    /// <summary>
+    /// Resolves any stub track IDs inside a playlist that SoundCloud returned without titles/transcodings.
+    /// </summary>
+    public async Task HydratePlaylistTracksAsync(Playlist playlist, CancellationToken ct = default)
+    {
+        if (playlist.TrackIds.Count == 0) return;
+
+        var loadedIds = new HashSet<long>(playlist.Tracks.Select(t => t.Id));
+        var missingIds = playlist.TrackIds.Where(id => !loadedIds.Contains(id)).Distinct().Take(50).ToList();
+
+        if (missingIds.Count == 0) return;
+
+        var fetched = await GetTracksByIdsAsync(missingIds, ct);
+        var fetchedDict = fetched.ToDictionary(t => t.Id, t => t);
+
+        var completeList = new List<Track>();
+        var existingDict = playlist.Tracks.ToDictionary(t => t.Id, t => t);
+
+        foreach (var id in playlist.TrackIds)
+        {
+            if (existingDict.TryGetValue(id, out var existing))
+            {
+                completeList.Add(existing);
+            }
+            else if (fetchedDict.TryGetValue(id, out var hydrated))
+            {
+                completeList.Add(hydrated);
+            }
+        }
+
+        if (completeList.Count > 0)
+        {
+            playlist.Tracks = completeList;
+            playlist.TrackCount = completeList.Count;
+        }
+    }
+
+    public async Task<List<Track>> GetTracksByIdsAsync(IEnumerable<long> ids, CancellationToken ct = default)
+    {
+        await EnsureInitializedAsync(ct);
+        var idList = ids.Distinct().Take(50).ToList();
+        if (idList.Count == 0) return new List<Track>();
+
+        var joined = string.Join(",", idList);
+        var url = $"https://api-v2.soundcloud.com/tracks?ids={joined}&client_id={_clientId}";
+
+        try
+        {
+            using var request = CreateRequest(HttpMethod.Get, url);
+            using var response = await _http.SendAsync(request, ct);
+            if (!response.IsSuccessStatusCode) return new List<Track>();
+
+            var json = await response.Content.ReadAsStringAsync(ct);
+            using var doc = JsonDocument.Parse(json);
+            var list = new List<Track>();
+
+            if (doc.RootElement.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var el in doc.RootElement.EnumerateArray())
+                {
+                    if (!IsAdOrPromotedItem(el))
+                    {
+                        list.Add(ParseTrack(el));
+                    }
+                }
+            }
+            return list;
+        }
+        catch
+        {
+            return new List<Track>();
+        }
     }
 
     // ==========================================
@@ -216,6 +348,7 @@ public class SoundCloudApiClient
 
         foreach (var item in col.EnumerateArray())
         {
+            if (IsAdOrPromotedItem(item)) continue;
             list.Add(ParseTrack(item));
         }
 
@@ -241,6 +374,7 @@ public class SoundCloudApiClient
 
         foreach (var item in col.EnumerateArray())
         {
+            if (IsAdOrPromotedItem(item)) continue;
             list.Add(ParsePlaylist(item));
         }
 
@@ -309,7 +443,7 @@ public class SoundCloudApiClient
     }
 
     // ==========================================
-    // 4. STREAM RESOLUTION (HLS or Progressive MP3)
+    // 4. STREAM RESOLUTION (Direct Ad-Free Audio)
     // ==========================================
     public async Task<string> ResolveStreamUrlAsync(Track track, CancellationToken ct = default)
     {
@@ -317,7 +451,6 @@ public class SoundCloudApiClient
 
         if (track.Transcodings == null || track.Transcodings.Count == 0)
         {
-            // Fallback: fetch track details directly
             var trackUrl = $"https://api-v2.soundcloud.com/tracks/{track.Id}?client_id={_clientId}";
             using var req = CreateRequest(HttpMethod.Get, trackUrl);
             using var resp = await _http.SendAsync(req, ct);
@@ -336,12 +469,10 @@ public class SoundCloudApiClient
             throw new InvalidOperationException($"No transcodings found for track {track.Id} ({track.Title}).");
         }
 
-        // Transcoding priority order:
-        // 1. Progressive MP3 128k (standard seeking, robust)
-        // 2. HLS AAC 160k (standard SoundCloud stream)
-        // 3. HLS MP3 / opus / any first available
+        // Filter out snipped previews if full stream is available, and prioritize Progressive MP3 then HLS AAC
         var ordered = track.Transcodings
-            .OrderByDescending(t => t.Protocol == "progressive" ? 3 : (t.Protocol == "hls" ? 2 : 1))
+            .OrderBy(t => t.Snipped ? 1 : 0)
+            .ThenByDescending(t => t.Protocol == "progressive" ? 3 : (t.Protocol == "hls" ? 2 : 1))
             .ThenByDescending(t => t.MimeType.Contains("mp4a") ? 2 : (t.MimeType.Contains("mpeg") ? 1 : 0))
             .ToList();
 
@@ -356,7 +487,7 @@ public class SoundCloudApiClient
                     resolveUrl += $"&track_authorization={track.TrackAuthorization}";
                 }
 
-                // CRITICAL: SoundCloud media CDN endpoints do NOT accept OAuth headers!
+                // Direct CDN audio resolution without ad-injection headers
                 using var request = CreateRequest(HttpMethod.Get, resolveUrl, attachAuth: false);
                 using var response = await _http.SendAsync(request, ct);
                 if (!response.IsSuccessStatusCode)
@@ -418,7 +549,6 @@ public class SoundCloudApiClient
                     if (val > max) max = val;
                 }
 
-                // Normalize to 0.0f .. 1.0f range
                 for (int i = 0; i < samples.Length; i++)
                 {
                     samples[i] = Math.Clamp(samples[i] / max, 0.05f, 1.0f);
@@ -438,7 +568,7 @@ public class SoundCloudApiClient
     }
 
     // ==========================================
-    // 6. USER ACCOUNT / LIKES / LIBRARY
+    // 6. USER ACCOUNT / LIKES / PLAYLISTS / REAL SYNC
     // ==========================================
     public async Task<UserSession?> GetMeAsync(CancellationToken ct = default)
     {
@@ -455,16 +585,54 @@ public class SoundCloudApiClient
         using var doc = JsonDocument.Parse(json);
         var root = doc.RootElement;
 
-        return new UserSession
+        var session = new UserSession
         {
             UserId = root.GetProperty("id").GetInt64(),
             Username = root.GetProperty("username").GetString() ?? "User",
             AvatarUrl = root.TryGetProperty("avatar_url", out var av) ? av.GetString() : null,
             OAuthToken = _oauthToken
         };
+
+        // Pre-populate liked track IDs in background
+        _ = RefreshLikedTrackIdsAsync(session.UserId, ct);
+
+        return session;
     }
 
-    public async Task<List<Track>> GetLikedTracksAsync(long userId, int limit = 30, int offset = 0, CancellationToken ct = default)
+    public async Task RefreshLikedTrackIdsAsync(long userId, CancellationToken ct = default)
+    {
+        if (userId <= 0) return;
+        try
+        {
+            await EnsureInitializedAsync(ct);
+            var url = $"https://api-v2.soundcloud.com/users/{userId}/track_likes/ids?client_id={_clientId}&limit=500";
+            using var request = CreateRequest(HttpMethod.Get, url);
+            using var response = await _http.SendAsync(request, ct);
+            if (!response.IsSuccessStatusCode) return;
+
+            var json = await response.Content.ReadAsStringAsync(ct);
+            using var doc = JsonDocument.Parse(json);
+            if (doc.RootElement.TryGetProperty("collection", out var col))
+            {
+                _likedTrackIds.Clear();
+                foreach (var idEl in col.EnumerateArray())
+                {
+                    if (idEl.ValueKind == JsonValueKind.Number)
+                    {
+                        long tid = idEl.GetInt64();
+                        _likedTrackIds[tid] = true;
+                        if (_trackRegistry.TryGetValue(tid, out var wr) && wr.TryGetTarget(out var trk))
+                        {
+                            SoundWin.Core.Utils.AppDispatcher.Dispatch(() => trk.IsLiked = true);
+                        }
+                    }
+                }
+            }
+        }
+        catch { }
+    }
+
+    public async Task<List<Track>> GetLikedTracksAsync(long userId, int limit = 50, int offset = 0, CancellationToken ct = default)
     {
         await EnsureInitializedAsync(ct);
 
@@ -481,17 +649,18 @@ public class SoundCloudApiClient
 
         foreach (var item in col.EnumerateArray())
         {
-            // In track_likes, track object is nested inside "track"
             if (item.TryGetProperty("track", out var trackEl))
             {
                 var track = ParseTrack(trackEl);
                 track.IsLiked = true;
+                _likedTrackIds[track.Id] = true;
                 list.Add(track);
             }
-            else
+            else if (item.TryGetProperty("title", out _))
             {
                 var track = ParseTrack(item);
                 track.IsLiked = true;
+                _likedTrackIds[track.Id] = true;
                 list.Add(track);
             }
         }
@@ -501,24 +670,224 @@ public class SoundCloudApiClient
 
     public async Task<bool> LikeTrackAsync(long userId, long trackId, CancellationToken ct = default)
     {
-        if (string.IsNullOrEmpty(_oauthToken)) return false;
+        if (string.IsNullOrEmpty(_oauthToken) || userId <= 0) return false;
         await EnsureInitializedAsync(ct);
 
         var url = $"https://api-v2.soundcloud.com/users/{userId}/track_likes/{trackId}?client_id={_clientId}";
         using var request = CreateRequest(HttpMethod.Put, url);
         using var response = await _http.SendAsync(request, ct);
-        return response.IsSuccessStatusCode;
+        if (response.IsSuccessStatusCode)
+        {
+            SetTrackLikeStateEverywhere(trackId, true);
+            return true;
+        }
+        return false;
     }
 
     public async Task<bool> UnlikeTrackAsync(long userId, long trackId, CancellationToken ct = default)
     {
-        if (string.IsNullOrEmpty(_oauthToken)) return false;
+        if (string.IsNullOrEmpty(_oauthToken) || userId <= 0) return false;
         await EnsureInitializedAsync(ct);
 
         var url = $"https://api-v2.soundcloud.com/users/{userId}/track_likes/{trackId}?client_id={_clientId}";
         using var request = CreateRequest(HttpMethod.Delete, url);
         using var response = await _http.SendAsync(request, ct);
-        return response.IsSuccessStatusCode;
+        if (response.IsSuccessStatusCode)
+        {
+            SetTrackLikeStateEverywhere(trackId, false);
+            return true;
+        }
+        return false;
+    }
+
+    private void SetTrackLikeStateEverywhere(long trackId, bool isLiked)
+    {
+        if (isLiked) _likedTrackIds[trackId] = true;
+        else _likedTrackIds.TryRemove(trackId, out _);
+
+        if (_trackRegistry.TryGetValue(trackId, out var wr) && wr.TryGetTarget(out var trk))
+        {
+            SoundWin.Core.Utils.AppDispatcher.Dispatch(() => trk.IsLiked = isLiked);
+        }
+
+        TrackLikeChanged?.Invoke(trackId, isLiked);
+    }
+
+    // ==========================================
+    // 7. PLAYLIST MANAGEMENT (Create, Edit, Delete, Add Track)
+    // ==========================================
+    public async Task<List<Playlist>> GetUserPlaylistsAsync(long userId, int limit = 50, CancellationToken ct = default)
+    {
+        await EnsureInitializedAsync(ct);
+        var url = $"https://api-v2.soundcloud.com/users/{userId}/playlists?client_id={_clientId}&limit={limit}";
+
+        try
+        {
+            using var request = CreateRequest(HttpMethod.Get, url);
+            using var response = await _http.SendAsync(request, ct);
+            if (!response.IsSuccessStatusCode) return new List<Playlist>();
+
+            var json = await response.Content.ReadAsStringAsync(ct);
+            using var doc = JsonDocument.Parse(json);
+            var list = new List<Playlist>();
+
+            if (doc.RootElement.TryGetProperty("collection", out var col))
+            {
+                foreach (var item in col.EnumerateArray())
+                {
+                    list.Add(ParsePlaylist(item));
+                }
+            }
+            return list;
+        }
+        catch
+        {
+            return new List<Playlist>();
+        }
+    }
+
+    public async Task<Playlist?> CreatePlaylistAsync(string title, string? description = null, string sharing = "public", IEnumerable<long>? initialTrackIds = null, CancellationToken ct = default)
+    {
+        if (!IsAuthenticated || string.IsNullOrWhiteSpace(title)) return null;
+        await EnsureInitializedAsync(ct);
+
+        var url = $"https://api-v2.soundcloud.com/playlists?client_id={_clientId}";
+        var trackList = initialTrackIds?.Distinct().Select(id => new { id }).ToArray() ?? Array.Empty<object>();
+
+        var payload = new
+        {
+            playlist = new
+            {
+                title = title.Trim(),
+                description = description?.Trim() ?? "",
+                sharing = string.IsNullOrEmpty(sharing) ? "public" : sharing,
+                tracks = trackList
+            }
+        };
+
+        try
+        {
+            using var request = CreateRequest(HttpMethod.Post, url);
+            request.Content = new StringContent(JsonSerializer.Serialize(payload), System.Text.Encoding.UTF8, "application/json");
+
+            using var response = await _http.SendAsync(request, ct);
+            if (!response.IsSuccessStatusCode) return null;
+
+            var json = await response.Content.ReadAsStringAsync(ct);
+            using var doc = JsonDocument.Parse(json);
+            var created = ParsePlaylist(doc.RootElement);
+            UserPlaylistsChanged?.Invoke();
+            return created;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    public async Task<bool> AddTrackToPlaylistAsync(string playlistId, long trackId, CancellationToken ct = default)
+    {
+        if (!IsAuthenticated || string.IsNullOrWhiteSpace(playlistId)) return false;
+        await EnsureInitializedAsync(ct);
+
+        try
+        {
+            var current = await GetPlaylistDetailsAsync(playlistId, ct);
+            var trackIds = new List<long>(current.TrackIds);
+            if (trackIds.Count == 0 && current.Tracks.Count > 0)
+            {
+                trackIds.AddRange(current.Tracks.Select(t => t.Id));
+            }
+
+            if (!trackIds.Contains(trackId))
+            {
+                trackIds.Add(trackId);
+            }
+
+            return await SetPlaylistTracksAsync(playlistId, trackIds, ct);
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    public async Task<bool> RemoveTrackFromPlaylistAsync(string playlistId, long trackId, CancellationToken ct = default)
+    {
+        if (!IsAuthenticated || string.IsNullOrWhiteSpace(playlistId)) return false;
+        await EnsureInitializedAsync(ct);
+
+        try
+        {
+            var current = await GetPlaylistDetailsAsync(playlistId, ct);
+            var trackIds = new List<long>(current.TrackIds);
+            if (trackIds.Count == 0 && current.Tracks.Count > 0)
+            {
+                trackIds.AddRange(current.Tracks.Select(t => t.Id));
+            }
+
+            trackIds.RemoveAll(id => id == trackId);
+            return await SetPlaylistTracksAsync(playlistId, trackIds, ct);
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    public async Task<bool> SetPlaylistTracksAsync(string playlistId, IEnumerable<long> trackIds, CancellationToken ct = default)
+    {
+        if (!IsAuthenticated || string.IsNullOrWhiteSpace(playlistId)) return false;
+        await EnsureInitializedAsync(ct);
+
+        var url = $"https://api-v2.soundcloud.com/playlists/{playlistId}?client_id={_clientId}";
+        var payload = new
+        {
+            playlist = new
+            {
+                tracks = trackIds.ToArray()
+            }
+        };
+
+        try
+        {
+            using var request = CreateRequest(HttpMethod.Put, url);
+            request.Content = new StringContent(JsonSerializer.Serialize(payload), System.Text.Encoding.UTF8, "application/json");
+            using var response = await _http.SendAsync(request, ct);
+            if (response.IsSuccessStatusCode)
+            {
+                UserPlaylistsChanged?.Invoke();
+                return true;
+            }
+            return false;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    public async Task<bool> DeletePlaylistAsync(string playlistId, CancellationToken ct = default)
+    {
+        if (!IsAuthenticated || string.IsNullOrWhiteSpace(playlistId)) return false;
+        await EnsureInitializedAsync(ct);
+
+        var url = $"https://api-v2.soundcloud.com/playlists/{playlistId}?client_id={_clientId}";
+        try
+        {
+            using var request = CreateRequest(HttpMethod.Delete, url);
+            using var response = await _http.SendAsync(request, ct);
+            if (response.IsSuccessStatusCode)
+            {
+                UserPlaylistsChanged?.Invoke();
+                return true;
+            }
+            return false;
+        }
+        catch
+        {
+            return false;
+        }
     }
 
     // ==========================================
@@ -526,21 +895,25 @@ public class SoundCloudApiClient
     // ==========================================
     public static Track ParseTrack(JsonElement el)
     {
+        long id = el.TryGetProperty("id", out var idProp) && idProp.ValueKind == JsonValueKind.Number ? idProp.GetInt64() : 0;
+
         var track = new Track
         {
-            Id = el.TryGetProperty("id", out var idProp) ? idProp.GetInt64() : 0,
+            Id = id,
             Title = el.TryGetProperty("title", out var titleProp) ? titleProp.GetString() ?? "" : "",
             PermalinkUrl = el.TryGetProperty("permalink_url", out var permProp) ? permProp.GetString() : null,
             ArtworkUrl = el.TryGetProperty("artwork_url", out var artProp) ? artProp.GetString() : null,
             WaveformUrl = el.TryGetProperty("waveform_url", out var waveProp) ? waveProp.GetString() : null,
             Genre = el.TryGetProperty("genre", out var genreProp) ? genreProp.GetString() : null,
             Description = el.TryGetProperty("description", out var descProp) ? descProp.GetString() : null,
-            LikesCount = el.TryGetProperty("likes_count", out var likesProp) ? likesProp.GetInt64() : 0,
-            PlaybackCount = el.TryGetProperty("playback_count", out var playProp) ? playProp.GetInt64() : 0,
-            TrackAuthorization = el.TryGetProperty("track_authorization", out var authProp) ? authProp.GetString() : null
+            LikesCount = el.TryGetProperty("likes_count", out var likesProp) && likesProp.ValueKind == JsonValueKind.Number ? likesProp.GetInt64() : 0,
+            PlaybackCount = el.TryGetProperty("playback_count", out var playProp) && playProp.ValueKind == JsonValueKind.Number ? playProp.GetInt64() : 0,
+            TrackAuthorization = el.TryGetProperty("track_authorization", out var authProp) ? authProp.GetString() : null,
+            IsLiked = _likedTrackIds.ContainsKey(id),
+            IsReposted = _repostedTrackIds.ContainsKey(id)
         };
 
-        if (el.TryGetProperty("duration", out var durProp))
+        if (el.TryGetProperty("duration", out var durProp) && durProp.ValueKind == JsonValueKind.Number)
         {
             track.DurationMs = durProp.GetInt64();
             track.Duration = TimeSpan.FromMilliseconds(track.DurationMs);
@@ -549,7 +922,7 @@ public class SoundCloudApiClient
         if (el.TryGetProperty("user", out var userProp))
         {
             track.Artist = userProp.TryGetProperty("username", out var u) ? u.GetString() ?? "Unknown" : "Unknown";
-            track.ArtistId = userProp.TryGetProperty("id", out var uid) ? uid.GetInt64() : 0;
+            track.ArtistId = userProp.TryGetProperty("id", out var uid) && uid.ValueKind == JsonValueKind.Number ? uid.GetInt64() : 0;
             track.ArtistAvatarUrl = userProp.TryGetProperty("avatar_url", out var uav) ? uav.GetString() : null;
         }
 
@@ -560,8 +933,8 @@ public class SoundCloudApiClient
                 var trans = new TrackTranscoding
                 {
                     Url = t.TryGetProperty("url", out var u) ? u.GetString() ?? "" : "",
-                    Duration = t.TryGetProperty("duration", out var dur) ? dur.GetInt32() : 0,
-                    Snipped = t.TryGetProperty("snipped", out var snip) && snip.GetBoolean()
+                    Duration = t.TryGetProperty("duration", out var dur) && dur.ValueKind == JsonValueKind.Number ? dur.GetInt32() : 0,
+                    Snipped = t.TryGetProperty("snipped", out var snip) && snip.ValueKind == JsonValueKind.True
                 };
 
                 if (t.TryGetProperty("format", out var fmt))
@@ -579,6 +952,11 @@ public class SoundCloudApiClient
             }
         }
 
+        if (id > 0)
+        {
+            _trackRegistry[id] = new WeakReference<Track>(track);
+        }
+
         return track;
     }
 
@@ -593,8 +971,8 @@ public class SoundCloudApiClient
             Description = el.TryGetProperty("description", out var descProp) ? descProp.GetString() : null,
             ArtworkUrl = el.TryGetProperty("artwork_url", out var artProp) ? artProp.GetString() : null,
             CalculatedArtworkUrl = el.TryGetProperty("calculated_artwork_url", out var cArtProp) ? cArtProp.GetString() : null,
-            LikesCount = el.TryGetProperty("likes_count", out var likesProp) ? likesProp.GetInt64() : 0,
-            TrackCount = el.TryGetProperty("track_count", out var countProp) ? countProp.GetInt32() : 0,
+            LikesCount = el.TryGetProperty("likes_count", out var likesProp) && likesProp.ValueKind == JsonValueKind.Number ? likesProp.GetInt64() : 0,
+            TrackCount = el.TryGetProperty("track_count", out var countProp) && countProp.ValueKind == JsonValueKind.Number ? countProp.GetInt32() : 0,
             PermalinkUrl = el.TryGetProperty("permalink_url", out var permProp) ? permProp.GetString() : null,
             IsSystemPlaylist = el.TryGetProperty("kind", out var kindProp) && kindProp.GetString() == "system-playlist"
         };
@@ -602,21 +980,24 @@ public class SoundCloudApiClient
         if (el.TryGetProperty("user", out var userProp))
         {
             playlist.Author = userProp.TryGetProperty("username", out var u) ? u.GetString() ?? "" : "";
-            playlist.AuthorId = userProp.TryGetProperty("id", out var uid) ? uid.GetInt64() : 0;
+            playlist.AuthorId = userProp.TryGetProperty("id", out var uid) && uid.ValueKind == JsonValueKind.Number ? uid.GetInt64() : 0;
         }
 
         if (el.TryGetProperty("tracks", out var tracksProp) && tracksProp.ValueKind == JsonValueKind.Array)
         {
             foreach (var t in tracksProp.EnumerateArray())
             {
-                // In some playlists, tracks are stub objects with only { "id": ... }
-                // or full track objects.
+                if (t.TryGetProperty("id", out var tidEl) && tidEl.ValueKind == JsonValueKind.Number)
+                {
+                    playlist.TrackIds.Add(tidEl.GetInt64());
+                }
+
                 if (t.TryGetProperty("title", out _))
                 {
                     playlist.Tracks.Add(ParseTrack(t));
                 }
             }
-            if (playlist.TrackCount == 0) playlist.TrackCount = playlist.Tracks.Count;
+            if (playlist.TrackCount == 0) playlist.TrackCount = Math.Max(playlist.Tracks.Count, playlist.TrackIds.Count);
         }
 
         return playlist;
@@ -626,17 +1007,17 @@ public class SoundCloudApiClient
     {
         return new User
         {
-            Id = el.TryGetProperty("id", out var idProp) ? idProp.GetInt64() : 0,
+            Id = el.TryGetProperty("id", out var idProp) && idProp.ValueKind == JsonValueKind.Number ? idProp.GetInt64() : 0,
             Username = el.TryGetProperty("username", out var u) ? u.GetString() ?? "" : "",
             FullName = el.TryGetProperty("full_name", out var fn) ? fn.GetString() : null,
             AvatarUrl = el.TryGetProperty("avatar_url", out var av) ? av.GetString() : null,
             City = el.TryGetProperty("city", out var city) ? city.GetString() : null,
             Country = el.TryGetProperty("country_code", out var cc) ? cc.GetString() : null,
-            FollowersCount = el.TryGetProperty("followers_count", out var fol) ? fol.GetInt32() : 0,
-            FollowingsCount = el.TryGetProperty("followings_count", out var flw) ? flw.GetInt32() : 0,
-            TrackCount = el.TryGetProperty("track_count", out var tc) ? tc.GetInt32() : 0,
-            LikesCount = el.TryGetProperty("likes_count", out var lc) ? lc.GetInt32() : 0,
-            PlaylistCount = el.TryGetProperty("playlist_count", out var pc) ? pc.GetInt32() : 0,
+            FollowersCount = el.TryGetProperty("followers_count", out var fol) && fol.ValueKind == JsonValueKind.Number ? fol.GetInt32() : 0,
+            FollowingsCount = el.TryGetProperty("followings_count", out var flw) && flw.ValueKind == JsonValueKind.Number ? flw.GetInt32() : 0,
+            TrackCount = el.TryGetProperty("track_count", out var tc) && tc.ValueKind == JsonValueKind.Number ? tc.GetInt32() : 0,
+            LikesCount = el.TryGetProperty("likes_count", out var lc) && lc.ValueKind == JsonValueKind.Number ? lc.GetInt32() : 0,
+            PlaylistCount = el.TryGetProperty("playlist_count", out var pc) && pc.ValueKind == JsonValueKind.Number ? pc.GetInt32() : 0,
             Description = el.TryGetProperty("description", out var desc) ? desc.GetString() : null,
             PermalinkUrl = el.TryGetProperty("permalink_url", out var perm) ? perm.GetString() : null
         };
@@ -819,9 +1200,6 @@ public class SoundCloudApiClient
     // NUAGE-INSPIRED DISCOVERY & SOCIAL FEATURES
     // ==========================================
 
-    /// <summary>
-    /// RÃ©cupÃ¨re le flux d'actualitÃ©s (Stream) de l'utilisateur connectÃ© ou gÃ©nÃ©ral.
-    /// </summary>
     public async Task<List<StreamPost>> GetStreamAsync(int limit = 30, CancellationToken ct = default)
     {
         await EnsureInitializedAsync(ct);
@@ -841,10 +1219,13 @@ public class SoundCloudApiClient
             {
                 foreach (var item in col.EnumerateArray())
                 {
+                    if (IsAdOrPromotedItem(item)) continue;
+
                     var post = new StreamPost();
                     if (item.TryGetProperty("type", out var typeEl))
                     {
                         var tStr = typeEl.GetString() ?? "";
+                        if (tStr.Contains("promoted", StringComparison.OrdinalIgnoreCase)) continue;
                         post.IsRepost = tStr.Contains("repost", StringComparison.OrdinalIgnoreCase);
                         post.Type = tStr.Contains("playlist") ? "playlist" : "track";
                     }
@@ -861,10 +1242,12 @@ public class SoundCloudApiClient
 
                     if (item.TryGetProperty("track", out var trkEl))
                     {
+                        if (IsAdOrPromotedItem(trkEl)) continue;
                         post.Track = ParseTrack(trkEl);
                     }
                     else if (item.TryGetProperty("playlist", out var plEl))
                     {
+                        if (IsAdOrPromotedItem(plEl)) continue;
                         post.Playlist = ParsePlaylist(plEl);
                     }
 
@@ -882,9 +1265,6 @@ public class SoundCloudApiClient
         }
     }
 
-    /// <summary>
-    /// Station radio basÃ©e sur un morceau (Track Station).
-    /// </summary>
     public async Task<List<Track>> GetTrackStationAsync(long trackId, int limit = 25, CancellationToken ct = default)
     {
         await EnsureInitializedAsync(ct);
@@ -899,6 +1279,7 @@ public class SoundCloudApiClient
             var json = await response.Content.ReadAsStringAsync(ct);
             using var doc = JsonDocument.Parse(json);
             var pl = ParsePlaylist(doc.RootElement);
+            await HydratePlaylistTracksAsync(pl, ct);
             return pl.Tracks;
         }
         catch
@@ -907,9 +1288,6 @@ public class SoundCloudApiClient
         }
     }
 
-    /// <summary>
-    /// Station radio basÃ©e sur un artiste (Artist Station).
-    /// </summary>
     public async Task<List<Track>> GetArtistStationAsync(long artistId, int limit = 25, CancellationToken ct = default)
     {
         await EnsureInitializedAsync(ct);
@@ -924,6 +1302,7 @@ public class SoundCloudApiClient
             var json = await response.Content.ReadAsStringAsync(ct);
             using var doc = JsonDocument.Parse(json);
             var pl = ParsePlaylist(doc.RootElement);
+            await HydratePlaylistTracksAsync(pl, ct);
             return pl.Tracks;
         }
         catch
@@ -932,9 +1311,6 @@ public class SoundCloudApiClient
         }
     }
 
-    /// <summary>
-    /// Reposter un morceau sur SoundCloud.
-    /// </summary>
     public async Task<bool> RepostTrackAsync(long trackId, CancellationToken ct = default)
     {
         await EnsureInitializedAsync(ct);
@@ -945,14 +1321,21 @@ public class SoundCloudApiClient
         {
             using var request = CreateRequest(HttpMethod.Put, url);
             using var response = await _http.SendAsync(request, ct);
-            return response.IsSuccessStatusCode;
+            if (response.IsSuccessStatusCode)
+            {
+                _repostedTrackIds[trackId] = true;
+                if (_trackRegistry.TryGetValue(trackId, out var wr) && wr.TryGetTarget(out var trk))
+                {
+                    SoundWin.Core.Utils.AppDispatcher.Dispatch(() => trk.IsReposted = true);
+                }
+                TrackRepostChanged?.Invoke(trackId, true);
+                return true;
+            }
+            return false;
         }
         catch { return false; }
     }
 
-    /// <summary>
-    /// Supprimer un repost SoundCloud.
-    /// </summary>
     public async Task<bool> UnrepostTrackAsync(long trackId, CancellationToken ct = default)
     {
         await EnsureInitializedAsync(ct);
@@ -963,14 +1346,21 @@ public class SoundCloudApiClient
         {
             using var request = CreateRequest(HttpMethod.Delete, url);
             using var response = await _http.SendAsync(request, ct);
-            return response.IsSuccessStatusCode;
+            if (response.IsSuccessStatusCode)
+            {
+                _repostedTrackIds.TryRemove(trackId, out _);
+                if (_trackRegistry.TryGetValue(trackId, out var wr) && wr.TryGetTarget(out var trk))
+                {
+                    SoundWin.Core.Utils.AppDispatcher.Dispatch(() => trk.IsReposted = false);
+                }
+                TrackRepostChanged?.Invoke(trackId, false);
+                return true;
+            }
+            return false;
         }
         catch { return false; }
     }
 
-    /// <summary>
-    /// Suggestions de profils Ã  suivre (Who to follow).
-    /// </summary>
     public async Task<List<User>> GetWhoToFollowAsync(int limit = 12, CancellationToken ct = default)
     {
         await EnsureInitializedAsync(ct);
