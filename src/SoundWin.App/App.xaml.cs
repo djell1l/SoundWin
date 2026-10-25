@@ -63,6 +63,7 @@ public partial class App : Application
         services.AddSingleton<AudioPlayerService>();
         services.AddSingleton<DiscordRpcService>();
         services.AddSingleton<CredentialService>();
+        services.AddSingleton<SoundWinBridgeServer>();
 
         // ViewModels
         services.AddSingleton<MainViewModel>();
@@ -80,6 +81,7 @@ public partial class App : Application
             var credentials = Services.GetRequiredService<CredentialService>();
             var apiClient = Services.GetRequiredService<SoundCloudApiClient>();
             var rpc = Services.GetRequiredService<DiscordRpcService>();
+            var bridge = Services.GetRequiredService<SoundWinBridgeServer>();
 
             var session = credentials.LoadSession();
             if (session != null && !string.IsNullOrEmpty(session.OAuthToken))
@@ -103,6 +105,14 @@ public partial class App : Application
                     else windowQueue.TryEnqueue(() => action());
                 };
             }
+
+            SoundWinBridgeServer.BringToFrontHandler = () =>
+            {
+                window.Activate();
+            };
+
+            // Start Jay Ecosystem Bridge (Diswin IPC)
+            _ = bridge.StartAsync();
 
             Trace("Activating MainWindow...");
             window.Activate();
