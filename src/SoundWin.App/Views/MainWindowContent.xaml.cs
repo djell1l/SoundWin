@@ -1,10 +1,14 @@
 using System;
+using System.IO;
+using System.Runtime.InteropServices;
+using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using SoundWin.App.ViewModels;
 using SoundWin.Core.Models;
+using SoundWin.Core.Services;
 using Windows.System;
 
 namespace SoundWin.App.Views;
@@ -12,6 +16,13 @@ namespace SoundWin.App.Views;
 public sealed partial class MainWindowContent : UserControl
 {
     public static MainWindowContent? Current { get; private set; }
+
+    [DllImport("winmm.dll", CharSet = CharSet.Unicode, EntryPoint = "PlaySoundW")]
+    private static extern bool PlaySound(string pszSound, IntPtr hmod, uint fdwSound);
+
+    private const uint SND_ASYNC = 0x0001;
+    private const uint SND_NODEFAULT = 0x0002;
+    private const uint SND_FILENAME = 0x00020000;
 
     public PlayerViewModel PlayerVm { get; }
     public MainViewModel MainVm { get; }
@@ -21,11 +32,60 @@ public sealed partial class MainWindowContent : UserControl
 
     public MainWindowContent()
     {
-        Current = this; PlayerVm = App.Services.GetRequiredService<PlayerViewModel>(); MainVm = App.Services.GetRequiredService<MainViewModel>(); SettingsVm = App.Services.GetRequiredService<SettingsViewModel>(); InitializeComponent();
+        Current = this;
+        PlayerVm = App.Services.GetRequiredService<PlayerViewModel>();
+        MainVm = App.Services.GetRequiredService<MainViewModel>();
+        SettingsVm = App.Services.GetRequiredService<SettingsViewModel>();
+        InitializeComponent();
 
         // Default page: Home
         MainNavView.SelectedItem = MainNavView.MenuItems[0];
         ContentFrame.Navigate(typeof(HomePage));
+
+        Loaded += OnLoaded;
+    }
+
+    private void OnLoaded(object sender, RoutedEventArgs e)
+    {
+        Loaded -= OnLoaded;
+        var settings = App.Services.GetService<SettingsService>();
+        if (settings?.Current.EnableStartupIntro ?? true)
+        {
+            // Play assembled startup sound via Win32 PlaySound
+            var wavPath = Path.Combine(AppContext.BaseDirectory, "Assets", "StartupIntro.wav");
+            if (File.Exists(wavPath))
+            {
+                PlaySound(wavPath, IntPtr.Zero, SND_ASYNC | SND_FILENAME | SND_NODEFAULT);
+            }
+
+            try
+            {
+                StartupIntroStoryboard.Begin();
+            }
+            catch
+            {
+                IntroOverlay.Visibility = Visibility.Collapsed;
+            }
+        }
+        else
+        {
+            IntroOverlay.Visibility = Visibility.Collapsed;
+        }
+    }
+
+    private void OnIntroOverlayTapped(object sender, TappedRoutedEventArgs e)
+    {
+        try
+        {
+            StartupIntroStoryboard.Stop();
+        }
+        catch { }
+        IntroOverlay.Visibility = Visibility.Collapsed;
+    }
+
+    private void OnIntroStoryboardCompleted(object? sender, object e)
+    {
+        IntroOverlay.Visibility = Visibility.Collapsed;
     }
 
     public void NavigateToPlaylist(Playlist playlist)

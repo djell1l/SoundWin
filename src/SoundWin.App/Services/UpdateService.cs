@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -43,7 +43,7 @@ public sealed class UpdateInfo
 
 public static class UpdateService
 {
-    public const string DefaultCurrentVersion = "v0.1.0-edge.11";
+    public const string DefaultCurrentVersion = "v0.1.0-edge.12";
     public static string CurrentVersion { get; } = ResolveCurrentVersion();
     private const string RepoOwner = "djell1l";
     private const string RepoName = "SoundWin";

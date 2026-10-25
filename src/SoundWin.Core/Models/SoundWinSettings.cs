@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
 namespace SoundWin.Core.Models;
 
@@ -75,4 +75,9 @@ public sealed class SoundWinSettings
     /// Recherche automatique des mises à jour au lancement.
     /// </summary>
     public bool AutoCheckUpdatesOnStartup { get; set; } = true;
+
+    /// <summary>
+    /// Jouer l'introduction audio et visuelle au lancement de SCwin.
+    /// </summary>
+    public bool EnableStartupIntro { get; set; } = true;
 }

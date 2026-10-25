@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -60,6 +60,8 @@ public partial class SettingsViewModel : ObservableObject
 
     [ObservableProperty]
     private bool _autoCheckUpdatesOnStartup;
+    [ObservableProperty]
+    private bool _enableStartupIntro;
 
     [ObservableProperty]
     private bool _isCheckingForUpdates;
@@ -116,6 +118,7 @@ public partial class SettingsViewModel : ObservableObject
         _updateChannel = _settings.Current.UpdateChannel;
         _minimizeToTrayOnClose = _settings.Current.MinimizeToTrayOnClose;
         _autoCheckUpdatesOnStartup = _settings.Current.AutoCheckUpdatesOnStartup;
+        _enableStartupIntro = _settings.Current.EnableStartupIntro;
 
         _isDiscordConnected = _rpc.IsConnected;
         _discordStatusMessage = _rpc.StatusMessage;
@@ -207,6 +210,12 @@ public partial class SettingsViewModel : ObservableObject
     partial void OnAutoCheckUpdatesOnStartupChanged(bool value)
     {
         _settings.Current.AutoCheckUpdatesOnStartup = value;
+        _settings.Save();
+    }
+
+    partial void OnEnableStartupIntroChanged(bool value)
+    {
+        _settings.Current.EnableStartupIntro = value;
         _settings.Save();
     }
 

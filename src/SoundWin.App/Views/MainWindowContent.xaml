@@ -5,7 +5,9 @@
     xmlns:controls="using:SoundWin.App.Controls"
     xmlns:models="using:SoundWin.Core.Models">
 
-    <Grid RowDefinitions="Auto,*,Auto">
+    <Grid>
+        <!-- MAIN APP INTERFACE -->
+        <Grid x:Name="MainAppContainer" RowDefinitions="Auto,*,Auto">
         <!-- CUSTOM TITLE BAR -->
         <Grid x:Name="AppTitleBar" Grid.Row="0" Height="48" Padding="16,0" ColumnDefinitions="Auto,*,Auto">
             <!-- App Brand -->
@@ -528,5 +530,109 @@
                 </StackPanel>
             </Grid>
         </Border>
+        </Grid>
+
+        <!-- STARTUP INTRO OVERLAY (Pop & Miniaturize Logo) -->
+        <Grid
+            x:Name="IntroOverlay"
+            Background="#F20A0A0E"
+            Tapped="OnIntroOverlayTapped"
+            Canvas.ZIndex="999">
+            <Grid.Resources>
+                <Storyboard x:Name="StartupIntroStoryboard" Completed="OnIntroStoryboardCompleted">
+                    <DoubleAnimationUsingKeyFrames Storyboard.TargetName="IntroLogoTransform" Storyboard.TargetProperty="ScaleX">
+                        <SplineDoubleKeyFrame KeyTime="0:0:0.0" Value="0.1" />
+                        <SplineDoubleKeyFrame KeyTime="0:0:0.45" Value="1.08" KeySpline="0.1,0.9,0.2,1.0" />
+                        <SplineDoubleKeyFrame KeyTime="0:0:0.65" Value="1.0" KeySpline="0.25,0.1,0.25,1.0" />
+                        <SplineDoubleKeyFrame KeyTime="0:0:1.35" Value="1.0" />
+                        <SplineDoubleKeyFrame KeyTime="0:0:1.80" Value="0.0" KeySpline="0.7,0.0,1.0,0.5" />
+                    </DoubleAnimationUsingKeyFrames>
+
+                    <DoubleAnimationUsingKeyFrames Storyboard.TargetName="IntroLogoTransform" Storyboard.TargetProperty="ScaleY">
+                        <SplineDoubleKeyFrame KeyTime="0:0:0.0" Value="0.1" />
+                        <SplineDoubleKeyFrame KeyTime="0:0:0.45" Value="1.08" KeySpline="0.1,0.9,0.2,1.0" />
+                        <SplineDoubleKeyFrame KeyTime="0:0:0.65" Value="1.0" KeySpline="0.25,0.1,0.25,1.0" />
+                        <SplineDoubleKeyFrame KeyTime="0:0:1.35" Value="1.0" />
+                        <SplineDoubleKeyFrame KeyTime="0:0:1.80" Value="0.0" KeySpline="0.7,0.0,1.0,0.5" />
+                    </DoubleAnimationUsingKeyFrames>
+
+                    <DoubleAnimationUsingKeyFrames Storyboard.TargetName="IntroLogoContainer" Storyboard.TargetProperty="Opacity">
+                        <LinearDoubleKeyFrame KeyTime="0:0:0.0" Value="0.0" />
+                        <LinearDoubleKeyFrame KeyTime="0:0:0.25" Value="1.0" />
+                        <LinearDoubleKeyFrame KeyTime="0:0:1.35" Value="1.0" />
+                        <LinearDoubleKeyFrame KeyTime="0:0:1.78" Value="0.0" />
+                    </DoubleAnimationUsingKeyFrames>
+
+                    <DoubleAnimationUsingKeyFrames Storyboard.TargetName="IntroTextContainer" Storyboard.TargetProperty="Opacity">
+                        <LinearDoubleKeyFrame KeyTime="0:0:0.0" Value="0.0" />
+                        <LinearDoubleKeyFrame KeyTime="0:0:0.40" Value="1.0" />
+                        <LinearDoubleKeyFrame KeyTime="0:0:1.25" Value="1.0" />
+                        <LinearDoubleKeyFrame KeyTime="0:0:1.65" Value="0.0" />
+                    </DoubleAnimationUsingKeyFrames>
+
+                    <DoubleAnimationUsingKeyFrames Storyboard.TargetName="IntroOverlay" Storyboard.TargetProperty="Opacity">
+                        <LinearDoubleKeyFrame KeyTime="0:0:0.0" Value="1.0" />
+                        <LinearDoubleKeyFrame KeyTime="0:0:1.35" Value="1.0" />
+                        <LinearDoubleKeyFrame KeyTime="0:0:1.85" Value="0.0" />
+                    </DoubleAnimationUsingKeyFrames>
+                </Storyboard>
+            </Grid.Resources>
+
+            <StackPanel
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                Spacing="18">
+                <!-- Center Logo Container with rounded squircle and soft glow -->
+                <Border
+                    x:Name="IntroLogoContainer"
+                    Width="160"
+                    Height="160"
+                    HorizontalAlignment="Center"
+                    CornerRadius="32"
+                    RenderTransformOrigin="0.5,0.5">
+                    <Border.RenderTransform>
+                        <CompositeTransform x:Name="IntroLogoTransform" ScaleX="0.1" ScaleY="0.1" />
+                    </Border.RenderTransform>
+
+                    <Grid>
+                        <!-- Ambient halo glow -->
+                        <Border
+                            CornerRadius="36"
+                            Background="#33FF5500"
+                            Margin="-10" />
+
+                        <!-- Inner rounded logo -->
+                        <Border
+                            CornerRadius="32"
+                            Background="#181822"
+                            BorderBrush="#40FFFFFF"
+                            BorderThickness="1.5">
+                            <Image
+                                Source="ms-appx:///Assets/AppIcon.png"
+                                Stretch="UniformToFill"
+                                Width="160"
+                                Height="160" />
+                        </Border>
+                    </Grid>
+                </Border>
+
+                <!-- Typography -->
+                <StackPanel x:Name="IntroTextContainer" HorizontalAlignment="Center" Spacing="4">
+                    <TextBlock
+                        Text="SCwin"
+                        FontSize="28"
+                        FontWeight="Bold"
+                        HorizontalAlignment="Center"
+                        CharacterSpacing="60" />
+                    <TextBlock
+                        Text="SOUNDCLOUD NATIVE"
+                        FontSize="11"
+                        FontWeight="SemiBold"
+                        Opacity="0.55"
+                        HorizontalAlignment="Center"
+                        CharacterSpacing="90" />
+                </StackPanel>
+            </StackPanel>
+        </Grid>
     </Grid>
 </UserControl>
