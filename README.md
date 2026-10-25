@@ -83,7 +83,7 @@ AI is the future — why whisper about it on GitHub like it's a dirty secret? Wh
 </p>
 
 - **[djell1l](https://github.com/djell1l)** — Lead developer & creator
-- **[Claude](https://github.com/anthropics)** ([@anthropics](https://github.com/anthropics)) & **[Gemini](https://github.com/google-gemini)** ([@google-gemini](https://github.com/google-gemini)) via **[Antigravity](https://github.com/google-deepmind)** ([@google-deepmind](https://github.com/google-deepmind)) — AI pair programming collaborators and architecture co-design
+- **[Gemini](https://github.com/google-gemini)** ([@google-gemini](https://github.com/google-gemini)) via **[Antigravity](https://github.com/google-deepmind)** ([@google-deepmind](https://github.com/google-deepmind)) — AI pair programming collaborator and architecture co-design
 - **[SoundCloudExplode](https://github.com/Tyrrrz/SoundCloudExplode)** by Oleksii Holub (Tyrrrz) & Jerro — Lightweight C# SoundCloud API client and stream parser
 - **[sctui](https://github.com/Illogicalll/sctui)** by Illogicalll — Outstanding terminal SoundCloud client inspiration and reverse-engineering insights
 - **[Soundnode](https://github.com/Soundnode/soundnode-app)** — The early pioneer desktop SoundCloud client concept
