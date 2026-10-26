@@ -79,6 +79,19 @@ public class InvertedBooleanVisibilityConverter : IValueConverter
     public object ConvertBack(object value, Type targetType, object parameter, string language) => throw new NotImplementedException();
 }
 
+public class InvertedBooleanConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, string language)
+    {
+        return value is not true;
+    }
+
+    public object ConvertBack(object value, Type targetType, object parameter, string language)
+    {
+        return value is not true;
+    }
+}
+
 public class StatusColorBrushConverter : IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, string language)

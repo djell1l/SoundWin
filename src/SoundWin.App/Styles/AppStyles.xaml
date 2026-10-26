@@ -24,7 +24,8 @@
     <converters:BooleanHeartConverter x:Key="BooleanHeartConverter" />
     <converters:BooleanOrangeBrushConverter x:Key="BooleanOrangeBrushConverter" />
     <converters:BooleanOpacityConverter x:Key="BooleanOpacityConverter" />
-    <converters:InvertedBooleanVisibilityConverter x:Key="InvertedBooleanVisibilityConverter" />
+        <converters:InvertedBooleanVisibilityConverter x:Key="InvertedBooleanVisibilityConverter" />
+    <converters:InvertedBooleanConverter x:Key="InvertedBooleanConverter" />
     <converters:StatusColorBrushConverter x:Key="StatusColorBrushConverter" />
     <converters:StringToImageSourceConverter x:Key="StringToImageSourceConverter" />
 </ResourceDictionary>
