@@ -1,4 +1,4 @@
-<Page
+﻿<Page
     x:Class="SoundWin.App.Views.ProfilePage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -45,12 +45,15 @@
                             Margin="0,0,28,0"
                             PointerEntered="OnAvatarAreaPointerEntered"
                             PointerExited="OnAvatarAreaPointerExited">
-                            <PersonPicture
-                                x:Name="ProfileAvatarControl"
-                                Width="172"
-                                Height="172"
-                                ProfilePicture="{x:Bind Vm.User.HighResAvatarUrl, Mode=OneWay, Converter={StaticResource StringToImageSourceConverter}}"
-                                DisplayName="{x:Bind Vm.User.Username, Mode=OneWay}" />
+                            <Grid Width="172" Height="172">
+                                <Ellipse Fill="#282832" />
+                                <FontIcon Glyph="&#xE77B;" FontSize="64" Opacity="0.4" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                <Ellipse x:Name="ProfileAvatarEllipse">
+                                    <Ellipse.Fill>
+                                        <ImageBrush ImageSource="{x:Bind Vm.User.HighResAvatarUrl, Mode=OneWay, Converter={StaticResource StringToImageSourceConverter}}" Stretch="UniformToFill" />
+                                    </Ellipse.Fill>
+                                </Ellipse>
+                            </Grid>
 
                             <!-- "Mettre à jour l'image" button on Avatar -->
                             <Button
@@ -453,13 +456,15 @@
                                         HorizontalContentAlignment="Left"
                                         Click="OnFollowingUserClicked">
                                         <Grid ColumnDefinitions="Auto,*,Auto" HorizontalAlignment="Stretch">
-                                            <PersonPicture
-                                                Grid.Column="0"
-                                                Width="40"
-                                                Height="40"
-                                                ProfilePicture="{x:Bind HighResAvatarUrl, Converter={StaticResource StringToImageSourceConverter}}"
-                                                DisplayName="{x:Bind Username}"
-                                                Margin="0,0,10,0" />
+                                            <Grid Grid.Column="0" Width="40" Height="40" Margin="0,0,10,0">
+                                                <Ellipse Fill="#2B2D31" />
+                                                <FontIcon Glyph="&#xE77B;" FontSize="18" Opacity="0.4" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                                <Ellipse>
+                                                    <Ellipse.Fill>
+                                                        <ImageBrush ImageSource="{x:Bind HighResAvatarUrl, Converter={StaticResource StringToImageSourceConverter}}" Stretch="UniformToFill" />
+                                                    </Ellipse.Fill>
+                                                </Ellipse>
+                                            </Grid>
                                             <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
                                                 <TextBlock Text="{x:Bind Username}" FontSize="12" FontWeight="Bold" TextTrimming="CharacterEllipsis" MaxLines="1" />
                                                 <StackPanel Orientation="Horizontal" Spacing="6">

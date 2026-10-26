@@ -147,7 +147,7 @@
                     <!-- Status Info Notification (when waiting or error) -->
                     <InfoBar
                         IsOpen="{x:Bind Vm.IsDiscordRpcEnabled, Mode=OneWay}"
-                        Severity="{x:Bind Vm.IsDiscordConnected, Mode=OneWay, Converter={StaticResource BooleanVisibilityConverter}, FallbackValue='Informational'}"
+                        Severity="Informational"
                         IsClosable="False"
                         Message="{x:Bind Vm.DiscordStatusMessage, Mode=OneWay}"
                         Margin="0,0,0,4" />
@@ -415,10 +415,17 @@
                     <InfoBar
                         IsOpen="{x:Bind Vm.IsUpdateResultOpen, Mode=OneWay}"
                         Message="{x:Bind Vm.UpdateCheckResult, Mode=OneWay}"
-                        Severity="{x:Bind Vm.HasUpdateAvailable, Mode=OneWay, Converter={StaticResource BooleanVisibilityConverter}, FallbackValue='Success'}"
+                        Severity="Success"
                         IsClosable="True" />
                 </StackPanel>
             </Border>
+            <!-- Modern subtle footer: version & channel -->
+            <StackPanel HorizontalAlignment="Center" Spacing="4" Margin="0,16,0,24" Opacity="0.45">
+                <TextBlock HorizontalAlignment="Center" FontSize="12">
+                    <Run Text="SCwin v" /><Run Text="{x:Bind Vm.CurrentVersion, Mode=OneWay}" /><Run Text=" &#x2022; Canal " /><Run Text="{x:Bind Vm.UpdateChannel, Mode=OneWay}" />
+                </TextBlock>
+                <TextBlock Text="Client Windows natif 100% WinUI 3 (Windows App SDK) &#x2022; .NET 8" HorizontalAlignment="Center" FontSize="11" />
+            </StackPanel>
         </StackPanel>
     </ScrollViewer>
 </Page>

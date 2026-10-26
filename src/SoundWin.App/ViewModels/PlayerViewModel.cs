@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Linq;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.Extensions.DependencyInjection;
 using SoundWin.Core.Models;
 using SoundWin.Core.Services;
 using SoundWin.Core.Utils;
@@ -137,6 +139,36 @@ public partial class PlayerViewModel : ObservableObject
                 }
             });
         };
+
+        _ = RestoreLastPlayedTrackAsync();
+    }
+
+    public async Task RestoreLastPlayedTrackAsync()
+    {
+        try
+        {
+            var settings = App.Services.GetService<SettingsService>();
+            if (settings != null && settings.Current.LastPlayedTrackId > 0 && CurrentTrack == null)
+            {
+                var tracks = await _apiClient.GetTracksByIdsAsync(new[] { settings.Current.LastPlayedTrackId });
+                var track = tracks?.FirstOrDefault();
+                if (track != null && CurrentTrack == null)
+                {
+                    AppDispatcher.Dispatch(() =>
+                    {
+                        CurrentTrack = track;
+                        Duration = track.Duration;
+                        Position = TimeSpan.FromSeconds(Math.Min(settings.Current.LastPlayedPositionSeconds, track.Duration.TotalSeconds));
+                        Progress = track.Duration.TotalSeconds > 0 ? Position.TotalSeconds / track.Duration.TotalSeconds : 0;
+                        OnPropertyChanged(nameof(DurationMs));
+                        OnPropertyChanged(nameof(FormattedPosition));
+                        OnPropertyChanged(nameof(FormattedDuration));
+                        _ = LoadCommentsForCurrentTrackAsync();
+                    });
+                }
+            }
+        }
+        catch { }
     }
 
     public async Task LoadCommentsForCurrentTrackAsync()

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -17,6 +17,7 @@ public sealed partial class LibraryPage : Page
     {
         ViewModel = App.Services.GetRequiredService<LibraryViewModel>();
         InitializeComponent();
+        NavigationCacheMode = Microsoft.UI.Xaml.Navigation.NavigationCacheMode.Required;
         Loaded += OnLoaded;
     }
 

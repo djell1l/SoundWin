@@ -1,4 +1,4 @@
-<Page
+﻿<Page
     x:Class="SoundWin.App.Views.LibraryPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -171,12 +171,15 @@
                     <GridView.ItemTemplate>
                         <DataTemplate x:DataType="models:User">
                             <StackPanel Width="184" Padding="10" Margin="0,0,16,20" Spacing="10" HorizontalAlignment="Center">
-                                <PersonPicture
-                                    Width="156"
-                                    Height="156"
-                                    HorizontalAlignment="Center"
-                                    ProfilePicture="{x:Bind HighResAvatarUrl, Mode=OneWay, Converter={StaticResource StringToImageSourceConverter}}"
-                                    DisplayName="{x:Bind Username, Mode=OneWay}" />
+                                <Grid Width="156" Height="156" HorizontalAlignment="Center">
+                                    <Ellipse Fill="#22222A" />
+                                    <FontIcon Glyph="&#xE77B;" FontSize="54" Opacity="0.4" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    <Ellipse>
+                                        <Ellipse.Fill>
+                                            <ImageBrush ImageSource="{x:Bind HighResAvatarUrl, Mode=OneWay, Converter={StaticResource StringToImageSourceConverter}}" Stretch="UniformToFill" />
+                                        </Ellipse.Fill>
+                                    </Ellipse>
+                                </Grid>
                                 <TextBlock
                                     Text="{x:Bind Username, Mode=OneWay}"
                                     FontSize="14"
@@ -238,12 +241,15 @@
                     <GridView.ItemTemplate>
                         <DataTemplate x:DataType="models:User">
                             <StackPanel Width="184" Padding="10" Margin="0,0,16,20" Spacing="10" HorizontalAlignment="Center">
-                                <PersonPicture
-                                    Width="156"
-                                    Height="156"
-                                    HorizontalAlignment="Center"
-                                    ProfilePicture="{x:Bind HighResAvatarUrl, Mode=OneWay, Converter={StaticResource StringToImageSourceConverter}}"
-                                    DisplayName="{x:Bind Username, Mode=OneWay}" />
+                                <Grid Width="156" Height="156" HorizontalAlignment="Center">
+                                    <Ellipse Fill="#22222A" />
+                                    <FontIcon Glyph="&#xE77B;" FontSize="54" Opacity="0.4" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    <Ellipse>
+                                        <Ellipse.Fill>
+                                            <ImageBrush ImageSource="{x:Bind HighResAvatarUrl, Mode=OneWay, Converter={StaticResource StringToImageSourceConverter}}" Stretch="UniformToFill" />
+                                        </Ellipse.Fill>
+                                    </Ellipse>
+                                </Grid>
                                 <TextBlock
                                     Text="{x:Bind Username, Mode=OneWay}"
                                     FontSize="14"

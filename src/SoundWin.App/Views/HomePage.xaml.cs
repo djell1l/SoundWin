@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -14,6 +14,7 @@ public sealed partial class HomePage : Page
     public HomeViewModel ViewModel { get; }
 
     public HomePage() { ViewModel = App.Services.GetRequiredService<HomeViewModel>(); InitializeComponent();
+        NavigationCacheMode = Microsoft.UI.Xaml.Navigation.NavigationCacheMode.Required;
 
         Loaded += OnLoaded;
     }

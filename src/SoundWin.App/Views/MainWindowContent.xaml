@@ -1,4 +1,4 @@
-<UserControl
+﻿<UserControl
     x:Class="SoundWin.App.Views.MainWindowContent"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -63,12 +63,15 @@
                     CornerRadius="18"
                     ToolTipService.ToolTip="{x:Bind MainVm.ActiveUsername, Mode=OneWay}">
                     <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-                        <PersonPicture
-                            x:Name="TitleUserAvatar"
-                            Width="28"
-                            Height="28"
-                            ProfilePicture="{x:Bind MainVm.ActiveUserAvatar, Mode=OneWay, Converter={StaticResource StringToImageSourceConverter}}"
-                            DisplayName="{x:Bind MainVm.ActiveUsername, Mode=OneWay}" />
+                        <Grid Width="28" Height="28" VerticalAlignment="Center">
+                            <Ellipse Fill="#2B2D31" />
+                            <FontIcon Glyph="&#xE77B;" FontSize="13" Opacity="0.45" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            <Ellipse>
+                                <Ellipse.Fill>
+                                    <ImageBrush ImageSource="{x:Bind MainVm.ActiveUserAvatar, Mode=OneWay, Converter={StaticResource StringToImageSourceConverter}}" Stretch="UniformToFill" />
+                                </Ellipse.Fill>
+                            </Ellipse>
+                        </Grid>
                         <FontIcon Glyph="&#xE70D;" FontSize="10" Opacity="0.7" VerticalAlignment="Center" />
                     </StackPanel>
                     <Button.Flyout>
@@ -441,13 +444,15 @@
                                                     BorderBrush="#18FFFFFF"
                                                     BorderThickness="1">
                                                     <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
-                                                        <PersonPicture
-                                                            Grid.Column="0"
-                                                            Width="32"
-                                                            Height="32"
-                                                            VerticalAlignment="Top"
-                                                            ProfilePicture="{x:Bind HighResAvatarUrl, Converter={StaticResource StringToImageSourceConverter}}"
-                                                            DisplayName="{x:Bind Username}" />
+                                                        <Grid Grid.Column="0" Width="32" Height="32" VerticalAlignment="Top">
+                                                            <Ellipse Fill="#2B2D31" />
+                                                            <FontIcon Glyph="&#xE77B;" FontSize="14" Opacity="0.45" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                                            <Ellipse>
+                                                                <Ellipse.Fill>
+                                                                    <ImageBrush ImageSource="{x:Bind HighResAvatarUrl, Converter={StaticResource StringToImageSourceConverter}}" Stretch="UniformToFill" />
+                                                                </Ellipse.Fill>
+                                                            </Ellipse>
+                                                        </Grid>
                                                         <StackPanel Grid.Column="1" Spacing="3">
                                                             <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
                                                                 <TextBlock Text="{x:Bind Username}" FontSize="12" FontWeight="Bold" />

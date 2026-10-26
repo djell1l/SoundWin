@@ -1,3 +1,4 @@
+using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections.ObjectModel;
 using System.IO;
@@ -381,11 +382,20 @@ public partial class ProfileViewModel : ObservableObject
         {
             var bytes = await File.ReadAllBytesAsync(filePath);
             var res = await _apiClient.UploadAvatarAsync(bytes, Path.GetFileName(filePath));
-            if (res != null)
+                        if (res != null)
             {
                 var refreshed = await _apiClient.GetUserDetailsAsync(User.Id);
                 if (refreshed != null) User = refreshed;
                 else if (res != "updated") User.AvatarUrl = res;
+
+                var session = _credentials.LoadSession();
+                if (session != null)
+                {
+                    session.AvatarUrl = User.AvatarUrl;
+                    _credentials.SaveSession(session);
+                    App.Services.GetService<MainViewModel>()?.RefreshSession();
+                }
+
                 return true;
             }
         }
@@ -405,11 +415,20 @@ public partial class ProfileViewModel : ObservableObject
         {
             var bytes = await File.ReadAllBytesAsync(filePath);
             var res = await _apiClient.UploadHeaderImageAsync(bytes, Path.GetFileName(filePath));
-            if (res != null)
+                        if (res != null)
             {
                 var refreshed = await _apiClient.GetUserDetailsAsync(User.Id);
                 if (refreshed != null) User = refreshed;
-                else if (res != "updated") User.BannerUrl = res;
+                else if (res != "updated") User.AvatarUrl = res;
+
+                var session = _credentials.LoadSession();
+                if (session != null)
+                {
+                    session.AvatarUrl = User.AvatarUrl;
+                    _credentials.SaveSession(session);
+                    App.Services.GetService<MainViewModel>()?.RefreshSession();
+                }
+
                 return true;
             }
         }

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Diagnostics;
 using System.IO;
 using System.IO.Pipes;
@@ -93,10 +93,15 @@ public class DiscordRpcService : IDisposable
         await _stateLock.WaitAsync().ConfigureAwait(false);
         try
         {
-            if (!IsEnabled)
+                        if (!IsEnabled)
             {
                 _statusMessage = "Desactive dans les parametres";
-                await ClearPresenceInternalAsync().ConfigureAwait(false);
+                try
+                {
+                    await ClearPresenceInternalAsync().ConfigureAwait(false);
+                    await Task.Delay(150).ConfigureAwait(false);
+                }
+                catch { }
                 DisconnectInternal();
                 ConnectionStatusChanged?.Invoke(false);
             }

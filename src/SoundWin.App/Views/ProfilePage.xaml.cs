@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.ObjectModel;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
@@ -18,6 +18,7 @@ public sealed partial class ProfilePage : Page
     public ProfileViewModel Vm { get; }
 
     public ProfilePage() { Vm = App.Services.GetRequiredService<ProfileViewModel>(); InitializeComponent();
+        NavigationCacheMode = Microsoft.UI.Xaml.Navigation.NavigationCacheMode.Required;
     }
 
     protected override async void OnNavigatedTo(NavigationEventArgs e)
@@ -265,21 +266,25 @@ public sealed partial class ProfilePage : Page
         rootGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
 
         // Left Column: Circular Avatar Preview + "Mettre à jour l'image" + "Changer l'image d'en-tête"
-        var leftStack = new StackPanel { Spacing = 12, HorizontalAlignment = HorizontalAlignment.Center };
-        var avatarPreview = new PersonPicture
+                var leftStack = new StackPanel { Spacing = 12, HorizontalAlignment = HorizontalAlignment.Center };
+        var avatarGrid = new Grid { Width = 148, Height = 148 };
+        var bgEllipse = new Microsoft.UI.Xaml.Shapes.Ellipse { Fill = new Microsoft.UI.Xaml.Media.SolidColorBrush(Microsoft.UI.ColorHelper.FromArgb(255, 40, 40, 50)) };
+        var icon = new FontIcon { Glyph = "\uE77B", FontSize = 56, Opacity = 0.4, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
+        var imgBrush = new Microsoft.UI.Xaml.Media.ImageBrush { Stretch = Microsoft.UI.Xaml.Media.Stretch.UniformToFill };
+        var fgEllipse = new Microsoft.UI.Xaml.Shapes.Ellipse { Fill = imgBrush };
+        avatarGrid.Children.Add(bgEllipse);
+        avatarGrid.Children.Add(icon);
+        avatarGrid.Children.Add(fgEllipse);
+
+        void UpdateAvatarBrush(string? url)
         {
-            Width = 148,
-            Height = 148,
-            DisplayName = Vm.User.Username
-        };
-        if (!string.IsNullOrEmpty(Vm.User.HighResAvatarUrl))
-        {
-            try
+            if (!string.IsNullOrEmpty(url) && Uri.TryCreate(url, UriKind.Absolute, out var uri))
             {
-                avatarPreview.ProfilePicture = new Microsoft.UI.Xaml.Media.Imaging.BitmapImage(new Uri(Vm.User.HighResAvatarUrl));
+                try { imgBrush.ImageSource = new Microsoft.UI.Xaml.Media.Imaging.BitmapImage(uri); }
+                catch { }
             }
-            catch { }
         }
+        UpdateAvatarBrush(Vm.User.HighResAvatarUrl);
 
         var changeAvatarBtn = new Button
         {
@@ -293,18 +298,11 @@ public sealed partial class ProfilePage : Page
             if (!string.IsNullOrEmpty(path))
             {
                 await Vm.UploadAvatarFromFileAsync(path);
-                if (!string.IsNullOrEmpty(Vm.User?.HighResAvatarUrl))
-                {
-                    try
-                    {
-                        avatarPreview.ProfilePicture = new Microsoft.UI.Xaml.Media.Imaging.BitmapImage(new Uri(Vm.User.HighResAvatarUrl));
-                    }
-                    catch { }
-                }
+                UpdateAvatarBrush(Vm.User?.HighResAvatarUrl);
             }
         };
 
-        var changeHeaderBtn = new Button
+var changeHeaderBtn = new Button
         {
             Content = "Image d'en-tête...",
             FontSize = 12,
@@ -319,7 +317,7 @@ public sealed partial class ProfilePage : Page
             }
         };
 
-        leftStack.Children.Add(avatarPreview);
+        leftStack.Children.Add(avatarGrid);
         leftStack.Children.Add(changeAvatarBtn);
         leftStack.Children.Add(changeHeaderBtn);
         Grid.SetColumn(leftStack, 0);

@@ -1,4 +1,4 @@
-<Page
+﻿<Page
     x:Class="SoundWin.App.Views.PlaylistDetailPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -6,7 +6,7 @@
     xmlns:controls="using:SoundWin.App.Controls">
 
     <ScrollViewer Padding="32,24,32,48">
-        <StackPanel MaxWidth="920" HorizontalAlignment="Left" Spacing="24">
+        <StackPanel HorizontalAlignment="Stretch" Spacing="24">
             <!-- Back Button -->
             <Button
                 Background="Transparent"
